@@ -1,11 +1,11 @@
 // frover (c) 2025 Baltasar MIT License <baltasarq@gmail.com>
 
+
 package com.devbaltasarq.frover.ui;
 
 
 import java.nio.file.Path;
 import java.io.IOException;
-import java.util.Comparator;
 
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowAdapter;
@@ -18,21 +18,28 @@ import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 
 import com.devbaltasarq.frover.core.AppInfo;
-import com.devbaltasarq.frover.core.DirBrowser;
 import com.devbaltasarq.frover.core.Size;
 import com.devbaltasarq.frover.core.Cfg;
+import com.devbaltasarq.frover.core.Entry;
+import com.devbaltasarq.frover.ui.tools.Action;
+import com.devbaltasarq.frover.ui.dirbrowser.DirBrowserCtrl;
+import com.devbaltasarq.frover.ui.tools.Logger;
+import com.devbaltasarq.frover.ui.box.MessageBox;
+import com.devbaltasarq.frover.ui.box.InputBox;
+import com.devbaltasarq.frover.ui.box.AskBox;
+import com.devbaltasarq.frover.ui.mainwindow.MainWindowView;
 
 
 /** Control for MainWindow.
   * @author baltasarq
   */
-public class MainWindowCtrl extends DirBrowserCtrl {
-    public MainWindowCtrl(Path path)
+public class MainWindow extends DirBrowserCtrl {
+    public MainWindow(Path path)
     {
         this( new MainWindowView(), path );
     }
     
-    public MainWindowCtrl(MainWindowView view, Path path)
+    public MainWindow(MainWindowView view, Path path)
     {
         super( view );
         
@@ -53,19 +60,13 @@ public class MainWindowCtrl extends DirBrowserCtrl {
         this.getView().getOutput().setVisible( this.cfg.isOutputVisible().get() );
 
         this.log.i( AppInfo.getFullName() + "\n" );
-        this.cd( path );
+        this.doCd( path );
     }
     
     /** Starts the app by showing it. */
-    public void start()
+    public void show()
     {
         this.getView().getWindow().setVisible( true );
-    }
-    
-    /** @return the directory browser for the current dir. */
-    public DirBrowser getDirBrowser()
-    {
-        return this.dirBrowser;
     }
     
     /** @return the corresponding view. */
@@ -73,23 +74,21 @@ public class MainWindowCtrl extends DirBrowserCtrl {
     {
         return (MainWindowView) this.view;
     }
-
+    
     private void buildListeners()
     {
         this.buildActions();
         
-        this.getView().getDirChoicePanel().setChangeDirAction(
-                                                (p) -> this.cd( p ) );
         this.getView().getDirChoicePanel().setCopyCWDAction(
                                                 (t) -> this.doCopyCWD( t ) );
         this.getView().getFileChoicePanel().setSelectFileAction(
                                                 (p) -> this.doView( p ) );
         
-        this.getView().getWindow().addWindowListener( new WindowAdapter() {
+        this.getView().getWindow().addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent we)
             {
-                MainWindowCtrl.this.actionQuit.doIt();
+                MainWindow.this.actionQuit.doIt();
             }
             
             public void keyPressed(KeyEvent e)
@@ -158,6 +157,7 @@ public class MainWindowCtrl extends DirBrowserCtrl {
         final var OP_QUIT = this.getView().getOpQuit();
         final var OP_RENAME = this.getView().getOpRename();
         final var OP_COPY = this.getView().getOpCopy();
+        final var OP_MOVE = this.getView().getOpMove();
         final var OP_DELETE = this.getView().getOpDelete();
         final var OP_VIEW = this.getView().getOpView();
         final var OP_SHOW_HIDDEN = this.getView().getOpShowHidden();
@@ -167,6 +167,7 @@ public class MainWindowCtrl extends DirBrowserCtrl {
         OP_QUIT.setShortcut( new MenuShortcut( KeyEvent.VK_Q ) );
         OP_RENAME.setShortcut( new MenuShortcut( KeyEvent.VK_F2 ) );
         OP_COPY.setShortcut( new MenuShortcut( KeyEvent.VK_C ) );
+        OP_MOVE.setShortcut( new MenuShortcut( KeyEvent.VK_C, true ) );
         OP_DELETE.setShortcut( new MenuShortcut( KeyEvent.VK_DELETE ) );
         OP_VIEW.setShortcut( new MenuShortcut( KeyEvent.VK_F5 ) );
         OP_SHOW_HIDDEN.setShortcut( new MenuShortcut( KeyEvent.VK_F6 ) );
@@ -200,16 +201,30 @@ public class MainWindowCtrl extends DirBrowserCtrl {
         OP_DELETE.addActionListener(  (ActionEvent e) -> {
             this.actionDelete.doIt();
         });
+        
+        // OpDelete
+        OP_COPY.addActionListener(  (ActionEvent e) -> {
+            this.actionCopy.doIt();
+        });
+        
+        // OpMove
+        OP_MOVE.addActionListener(  (ActionEvent e) -> {
+            this.actionMove.doIt();
+        });
+        
+        // OpRename
+        OP_RENAME.addActionListener(  (ActionEvent e) -> {
+            this.actionRename.doIt();
+        });
     }
     
-    private void syncToCurrentDir()
+    @Override
+    public void syncToCurrentDir()
     {
-        final Path CWD = this.dirBrowser.getDirectory().getPath();
-        final Comparator<? super Path> SORTER = (p1, p2) -> p1.compareTo( p2 );
         String status = "Ready";
         
         try {
-            super.syncToDir( CWD, this.dirBrowser.readDir(), SORTER );
+            super.syncToCurrentDir();
             this.log.i( "sync `" + this.dirBrowser.getDirectory().asCanonical() + "`" );
         } catch(IOException exc)
         {
@@ -220,6 +235,16 @@ public class MainWindowCtrl extends DirBrowserCtrl {
         // Status and title
         this.setStatus( status );
         this.setTitle();
+    }
+    
+    /** Changes directory to the given path.
+      * @param PATH the given path to change to.
+      * @return true if the directory could be changed, false otherwise.
+      */
+    @Override
+    public boolean cd(final Path PATH)
+    {
+        return this.doCd( PATH );
     }
     
     private void setTitle()
@@ -242,57 +267,195 @@ public class MainWindowCtrl extends DirBrowserCtrl {
     /** Rename action */
     public void doRename()
     {
-        this.log.i( "renaming..." );
+        final Entry ENTRY = this.getChosenEntry();
+        String status = "renaming...";
+
+        this.log.i( status );
+        
+        if ( ENTRY != null ) {
+            final var INPUT_BOX = new InputBox(
+                                        this.view.getWindow(),
+                                        this.actionRename.getLabel(),
+                                        "New name for: `" + ENTRY.getFileName() + "`" );
+            String newName = INPUT_BOX.run();
+            
+            this.log.i( "\trenaming from: `" + ENTRY.asCanonical() + "`" );
+
+            if ( newName != null
+              && !newName.isEmpty() )
+            {
+                // Set target
+                final Entry NEW_ENTRY = Entry.from( Path.of( ENTRY.getParentPath(), newName ).toFile() );
+
+                if ( this.askToContinueBecauseExists( NEW_ENTRY ) ) {
+                    try {
+                        ENTRY.renameTo( newName );
+                        log.i( "\trenamed to: `" + newName + "`" );
+                        this.syncToCurrentDir();
+                    } catch(IOException exc) {
+                        status = "renaming to `" + newName + "`" + exc.getMessage();
+                        log.e( "\t" + status );
+                    }
+                } else {
+                    status = "cancelled by user";
+                    log.e( "\t + status ");
+                }
+            } else {
+                status = "cancelled by user";
+                log.e( "\t" + status );
+            }
+        } else {
+            status = "missing file selection";
+            log.e( "\t" + status );
+        }
+        
+        this.setStatus( status );
     }
     
     /** Copy action */
     public void doCopy()
     {
-        this.log.i( "copying..." );
+        final Entry ENTRY = this.getChosenEntry();
+        final String VERB = "copy";
+        String status = "";
+        
+        try {
+            final var TARGET = this.determineTargetForFileOp( VERB, ENTRY );
+            
+            if ( TARGET != null
+              && this.askToContinueBecauseExists( TARGET ) )
+            {
+                log.i( "\tcopying from: `" + ENTRY.asCanonical()
+                                + "` to `" + TARGET.asCanonical()
+                                + "`" );
+
+                ENTRY.copy( TARGET );
+                status = "copied: `" + ENTRY + "`";
+                log.i( "\t" + status );
+                this.syncToCurrentDir();
+            } else {
+                status = "cancelled by user";
+                log.e( "\t" + status );
+            }
+        } catch(IOException exc) {
+            status = "while " + VERB + ": `" + ENTRY + "`: " + exc.getMessage();
+            log.e( "\t" + status );
+        }
+        
+        this.setStatus( status );
     }
     
     /** Move action */
     public void doMove()
     {
-        this.log.i( "moving..." );
+        final Entry ENTRY = this.getChosenEntry();
+        final String VERB = "move";
+        String status = "";
+        
+        try {
+            final var TARGET = this.determineTargetForFileOp( VERB, ENTRY );
+            
+            if ( TARGET != null
+              && this.askToContinueBecauseExists( TARGET ) )
+            {
+                log.i( "\tmoving from: `" + ENTRY.asCanonical()
+                                + "` to `" + TARGET.asCanonical()
+                                + "`" );
+
+                ENTRY.move( TARGET );
+                status = "moved: `" + ENTRY + "`";
+                log.i( "\t" + status );
+                this.syncToCurrentDir();
+            } else {
+                status = "cancelled by user";
+            }
+        } catch(IOException exc) {
+            status = "while " + VERB + ": `" + ENTRY + "`: " + exc.getMessage();
+            log.e( "\t" + status );
+        }
+        
+        this.setStatus( status );
+    }
+    
+    
+    /** Determines the target for a copy or move.
+      * @param verb the verb as a string, such as "copy" or "move"
+      * @param ENTRY the original file.
+      * @return the entry object for the target.
+      */
+    private Entry determineTargetForFileOp(String verb, final Entry ENTRY)
+    {
+        Entry toret = null;
+        
+        log.i( "Prepare to copy: `" + ENTRY.asCanonical() + "`" );
+        
+        try {
+            final FileOpsDialog DLG_COPY = new FileOpsDialog(
+                                               this.getView().getFrame(),
+                                               ENTRY );
+            
+            Path targetPath = DLG_COPY.show();
+            
+            if ( targetPath != null ) {
+                toret = Entry.from( targetPath.toFile() );
+            } else {
+                log.i( "\tcancelled by user" );
+            }
+        } catch(IOException exc) {
+            log.e( "\twhile " + verb + ": `" + ENTRY + "`: " + exc.getMessage() );
+        }
+        
+        return toret;
+    }
+    
+    /** Asks to continue because of the existence of the file.
+      * @param ENTRY the entry that maybe exists.
+      * @return true if the user chooses to continue, false otherwise
+      */
+    private boolean askToContinueBecauseExists(final Entry ENTRY)
+    {
+        boolean toret = true;
+        
+        if ( ENTRY.exists() ) {
+            final AskBox ASKER = new AskBox(
+                                        this.getView().getFrame(),
+                                        "Overwrite? - " + AppInfo.NAME,
+                                        "File already exists: `"
+                                                + ENTRY.getFileName() + "`",
+                                        "Do you want to overwrite it?",
+                                        "Overwrite",
+                                        "Cancel" );
+            toret = ASKER.run();
+        }        
+        
+        return toret;
     }
     
     /** Move action */
     public void doDelete()
     {
-        final PathList DIR_CHOICE = this.getView().getDirChoicePanel().getDirList();
-        final PathList FILE_CHOICE = this.getView().getFileChoicePanel().getFileList();
         final String LBL_DELETE = this.actionDelete.getLabel();
-        PathList targetList = FILE_CHOICE;
-        String status = "Ready";
-        Path path;
+        final Entry ENTRY = this.getChosenEntry();
+        String status;
         
-        // Determine the list
-        if ( DIR_CHOICE.isFocusOwner() ) {
-            targetList = DIR_CHOICE;
-        }
-        
-        // Determine the path
-        int pos = targetList.getSelectedIndex();
-        
-        if ( pos >= 0 ) {
-            path = targetList.getPathAt( pos );
+        if ( ENTRY != null ) {
+            final String FILE_NAME = ENTRY.getFileName();
             
             final var ASK_BOX = new AskBox(
                                 this.getView().getFrame(),
                                 LBL_DELETE,
-                                LBL_DELETE + " `" + path.getFileName(),
+                                LBL_DELETE + " `" + FILE_NAME,
                                 "Are you sure?",
                                 LBL_DELETE,
                                 "Cancel" );
             if ( ASK_BOX.run() ) {
                 // Delete it
-                if ( path.toFile().delete() ) {
-                    status = "deleted: `" + path.getFileName() + "`";
+                if ( ENTRY.getFile().delete() ) {
+                    status = "deleted: `" + FILE_NAME + "`";
                     this.syncToCurrentDir();
                     this.log.i( status );
                 } else {
-                    status = "unable to delete: `" + path.getFileName() + "`";
+                    status = "unable to delete: `" + FILE_NAME + "`";
                     this.log.e( status );
                 }
             } else {
@@ -336,6 +499,23 @@ public class MainWindowCtrl extends DirBrowserCtrl {
         this.syncToCurrentDir();
     }
     
+    /** Avoids calling an overridable method from ctor.
+      * @param PATH the path to change to.
+      * @return true if cd was successful, false otherwise.
+      */
+    private boolean doCd(final Path PATH)
+    {
+        boolean toret = super.cd( PATH );
+        
+        if ( toret ) {
+            this.log.i( "cd `" + PATH + "`" );
+        } else {
+            this.log.e( "cd `" + PATH + "`: cannot change to" );
+        }
+        
+        return toret;
+    }
+    
     /** The about action. */
     public void doAbout()
     {
@@ -345,22 +525,6 @@ public class MainWindowCtrl extends DirBrowserCtrl {
                                         AppInfo.getFullName() );
         
         MBOX.run();
-    }
-    
-    /** Changes directory to the given path.
-      * @param path the given path to change to.
-      */
-    private void cd(final Path PATH)
-    {
-        try {
-            this.dirBrowser = new DirBrowser( PATH );
-            this.log.i( "cd `" + PATH + "`" );
-            this.syncToCurrentDir();
-        } catch(IOException exc) {
-            this.log.e( "cd `" + PATH + "`: cannot change to" );
-        }
-        
-        return;
     }
     
     /** Copies the CWD to the clipboard. */

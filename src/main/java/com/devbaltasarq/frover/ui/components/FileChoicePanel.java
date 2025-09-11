@@ -1,7 +1,7 @@
 // frover (c) 2025 Baltasar MIT License <baltasarq@gmail.com>
 
 
-package com.devbaltasarq.frover.ui;
+package com.devbaltasarq.frover.ui.components;
 
 
 import java.awt.BorderLayout;
@@ -76,7 +76,7 @@ public class FileChoicePanel extends Panel {
     }
     
     /** @return the list of files. */
-    protected PathList getFileList()
+    public PathList getFileList()
     {
         return this.fileList;
     }

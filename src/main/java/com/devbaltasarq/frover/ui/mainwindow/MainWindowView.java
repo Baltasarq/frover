@@ -1,9 +1,13 @@
 // frover (c) 2025 Baltasar MIT License <baltasarq@gmail.com>
 
 
-package com.devbaltasarq.frover.ui;
+package com.devbaltasarq.frover.ui.mainwindow;
 
 
+import com.devbaltasarq.frover.ui.dirbrowser.DirBrowserView;
+import com.devbaltasarq.frover.ui.components.DirChoicePanel;
+import com.devbaltasarq.frover.ui.components.FileChoicePanel;
+import com.devbaltasarq.frover.ui.components.OutputPanel;
 import java.awt.Font;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -14,10 +18,8 @@ import java.awt.Menu;
 import java.awt.Button;
 import java.awt.MenuBar;
 import java.awt.MenuItem;
-import java.awt.MenuShortcut;
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
-import java.awt.event.KeyEvent;
 
 
 /** App's main window
@@ -115,14 +117,9 @@ public class MainWindowView extends DirBrowserView {
         this.btView.setForeground( Color.BLUE );
         this.btView.setBackground( Color.WHITE );
         
-        this.btShowHidden = new Button( "F6 Show Hidden" );
-        this.btShowHidden.setFont( font );
-        this.btShowHidden.setForeground( Color.BLUE );
-        this.btShowHidden.setBackground( Color.WHITE );
-        
         final Button[] BUTTONS = {
             this.btHelp, this.btRename, this.btCopy,
-            this.btDelete, this.btView, this.btShowHidden
+            this.btDelete, this.btView
         };
 
         this.pnlToolbar = new Panel( new GridLayout( 1, BUTTONS.length ) );
@@ -131,7 +128,6 @@ public class MainWindowView extends DirBrowserView {
         this.pnlToolbar.add( this.btCopy );
         this.pnlToolbar.add( this.btDelete );
         this.pnlToolbar.add( this.btView );
-        this.pnlToolbar.add( this.btShowHidden );
         
         return this.pnlToolbar;
     }
@@ -158,6 +154,7 @@ public class MainWindowView extends DirBrowserView {
         this.mEdit = new Menu( "Edit" );
         this.opRename = new MenuItem( "Rename" );   
         this.opCopy = new MenuItem( "Copy" );
+        this.opMove = new MenuItem( "Move" );
         this.opDelete = new MenuItem( "Delete" );
         this.opView = new MenuItem( "View" );
         this.opShowHidden = new MenuItem( "Show hidden" );
@@ -165,6 +162,7 @@ public class MainWindowView extends DirBrowserView {
         this.mEdit.add( this.opView );
         this.mEdit.add( this.opRename );
         this.mEdit.add( this.opCopy );
+        this.mEdit.add( this.opMove );
         this.mEdit.add( this.opDelete );
         this.mEdit.add( this.opShowHidden );
         
@@ -175,7 +173,6 @@ public class MainWindowView extends DirBrowserView {
         this.mHelp = new Menu( "Help" );
         this.opAbout = new MenuItem( "About" );
         this.opHelp = new MenuItem( "Help" );
-        this.opHelp.setShortcut( new MenuShortcut( KeyEvent.VK_F1 ) );
         this.mHelp.add( this.opHelp );
         this.mHelp.add( this.opAbout );
         
@@ -223,6 +220,12 @@ public class MainWindowView extends DirBrowserView {
     public MenuItem getOpCopy()
     {
         return this.opCopy;
+    }
+    
+    /** @return the Edit >> move option. */
+    public MenuItem getOpMove()
+    {
+        return this.opMove;
     }
     
     /** @return the Edit >> move option. */
@@ -285,12 +288,6 @@ public class MainWindowView extends DirBrowserView {
         return this.btView;
     }
     
-    /** @return the button in the toolbar for show hidden. */
-    public Button getShowHiddenButton()
-    {
-        return this.btShowHidden;
-    }
-    
     /** @return the widget for the list of directories. */
     @Override
     public DirChoicePanel getDirChoicePanel()
@@ -319,6 +316,7 @@ public class MainWindowView extends DirBrowserView {
     private MenuItem opView;
     private MenuItem opRename;
     private MenuItem opCopy;
+    private MenuItem opMove;
     private MenuItem opDelete;
     private MenuItem opShowHidden;
     private MenuItem opViewOutput;
@@ -329,5 +327,4 @@ public class MainWindowView extends DirBrowserView {
     private Button btCopy;
     private Button btDelete;
     private Button btHelp;
-    private Button btShowHidden;
 }

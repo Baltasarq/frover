@@ -6,6 +6,8 @@ package com.devbaltasarq.frover.core;
 
 import java.nio.file.Path;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 
 import com.devbaltasarq.frover.core.entries.Directory;
 import com.devbaltasarq.frover.core.entries.File;
@@ -14,7 +16,7 @@ import com.devbaltasarq.frover.core.entries.File;
 /** Represents an entry, mostly files and directories.
   * @author baltasarq
   */
-public class Entry {
+public abstract class Entry {
     public Entry(Path path)
     {
         this.p = path;
@@ -63,6 +65,12 @@ public class Entry {
         return this.f.isHidden();
     }
     
+    /** @return true if the file exists, false otherwise. */
+    public boolean exists()
+    {
+        return this.f.exists();
+    }
+    
     @Override
     public boolean equals(Object other)
     {
@@ -91,6 +99,40 @@ public class Entry {
     public String toString()
     {
         return this.getFileName();
+    }
+    
+    /** Copies a file to a given target.
+      * @param target the destination for copying this file.
+      * @throws IOException 
+      */
+    public abstract void copy(Entry target) throws IOException;
+    
+    /** Moves a file to a given target.
+      * @param target the destination for moving this file.
+      * @throws IOException 
+      */
+    public abstract void move(Entry target) throws IOException;
+    
+    /** Creates the actual file or dir represented by this entry.
+      * @throws IOException when something goes wrong.
+      */
+    public abstract void create() throws IOException;
+    
+    /** Renames the entry to a new name, same path.
+      * @param newName the new name for the entry.
+      * @throws IOException if the name is empty, or renaming fails.
+      */
+    public void renameTo(String newName) throws IOException
+    {
+        newName = newName.trim();
+        
+        if ( newName.isEmpty() ) {
+            throw new IOException( "empty name" );
+        }
+        
+        final Path TARGET = Path.of( this.getParentPath(), newName );
+        
+        Files.move(this.getPath(), TARGET, StandardCopyOption.REPLACE_EXISTING );
     }
     
     private static String toCanonicalPath(Path path)

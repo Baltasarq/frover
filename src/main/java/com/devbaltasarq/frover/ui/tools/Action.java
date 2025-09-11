@@ -1,11 +1,12 @@
 // frover (c) 2025 Baltasar MIT License <baltasarq@gmail.com>
 
 
-package com.devbaltasarq.frover.ui;
+package com.devbaltasarq.frover.ui.tools;
 
 
 import java.util.List;
 import java.util.ArrayList;
+import com.devbaltasarq.frover.ui.components.ActionWidget;
 
 
 /** An Action that involves multiple widgets.
@@ -39,7 +40,7 @@ public class Action {
     /** Adds a new widget to the list of observables.
       * @param widget the new widget to observe.
       */
-    public void add(Widget widget)
+    public void add(ActionWidget widget)
     {
         this.widgets.add( widget );
     }
@@ -49,7 +50,7 @@ public class Action {
       */
     public void setVisible(boolean visible)
     {
-        for(Widget widget: widgets) {
+        for(ActionWidget widget: widgets) {
             widget.setVisible( visible );
         }
     }
@@ -80,6 +81,6 @@ public class Action {
     
     private final String name;
     private final String label;
-    private final List<Widget> widgets;
+    private final List<ActionWidget> widgets;
     private Runnable doIt;
 }

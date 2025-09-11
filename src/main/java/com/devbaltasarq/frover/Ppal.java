@@ -6,7 +6,7 @@ package com.devbaltasarq.frover;
 
 import java.nio.file.Path;
 
-import com.devbaltasarq.frover.ui.MainWindowCtrl;
+import com.devbaltasarq.frover.ui.MainWindow;
 import com.devbaltasarq.frover.core.AppInfo;
 
 
@@ -34,7 +34,7 @@ public class Ppal {
             System.out.println( "Setting given path: `" + path + "`" );
         }
         
-        var mainWin = new MainWindowCtrl( path );
-        mainWin.start();
+        var mainWin = new MainWindow( path );
+        mainWin.show();
     }
 }

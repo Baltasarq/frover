@@ -1,7 +1,7 @@
 // frover (c) 2025 Baltasar MIT License <baltasarq@gmail.com>
 
 
-package com.devbaltasarq.frover.ui;
+package com.devbaltasarq.frover.ui.components;
 
 
 import java.awt.BorderLayout;
@@ -189,25 +189,25 @@ public class DirChoicePanel extends Panel {
     }
     
     /** @return the list of directories. */
-    protected PathList getDirList()
+    public PathList getDirList()
     {
         return this.dirList;
     }
     
     /** @return the text field with the desired dir. */
-    protected TextField getEdCWD()
+    public TextField getEdCWD()
     {
         return this.edCWD;
     }
     
     /** @return the button for going up to parent directory. */
-    protected Button getBtUp()
+    public Button getBtUp()
     {
         return this.btUp;
     }
     
     /** @return a choice with the top directories. */
-    protected Choice getTopDirs()
+    public Choice getTopDirs()
     {
         return this.topDirs;
     }
