@@ -28,12 +28,13 @@ public class InputBox extends Dialog {
       * @param owner the given owner of this dialog.
       * @param title the given title of the dialog.
       * @param message the given message of the dialog.
+      * @param initText the inital text in the text field.
       */
-    public InputBox(Window owner, String title, String message)
+    public InputBox(Window owner, String title, String message, String initText)
     {
         super( owner, title, Dialog.ModalityType.APPLICATION_MODAL );
         this.message = message;
-        this.edValue = new TextField();
+        this.edValue = new TextField( initText );
         this.btOk = new Button( "Ok" );
         this.btCancel = new Button( "Cancel" );
         this.answer = null;
@@ -53,13 +54,13 @@ public class InputBox extends Dialog {
     /** Build the layout for this dialog. */
     private void build()
     {
+        final var FONT = Font.decode( "serif-16" );
         final var LY = new BorderLayout();
         final var LY_INNER = new BorderLayout();
         final var LY_BUTTONS = new GridLayout( 1, 4 );
         final var PNL_INNER = new Panel( LY_INNER );
         final var PNL_BUTTONS = new Panel( LY_BUTTONS );
         final var LBL_MESSAGE = new Label( this.message );
-        final var FONT = Font.decode( "serif-16" );
                 
         LBL_MESSAGE.setFont( FONT );
         LY.setHgap( 5 );
@@ -69,9 +70,10 @@ public class InputBox extends Dialog {
         LY_BUTTONS.setHgap( 5 );
         LY_BUTTONS.setVgap( 5 );
         this.setLayout( LY );
+        this.setFont( FONT );
         
         PNL_INNER.add( LBL_MESSAGE, BorderLayout.NORTH  );
-        PNL_INNER.add( this.edValue, BorderLayout.CENTER );
+        PNL_INNER.add( this.edValue, BorderLayout.SOUTH );
         
         PNL_BUTTONS.add( new Panel() );
         PNL_BUTTONS.add( new Panel() );
