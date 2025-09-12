@@ -6,6 +6,7 @@ package com.devbaltasarq.frover.ui.tools;
 
 import java.util.List;
 import java.util.ArrayList;
+
 import com.devbaltasarq.frover.ui.components.ActionWidget;
 
 
@@ -40,9 +41,9 @@ public class Action {
     /** Adds a new widget to the list of observables.
       * @param widget the new widget to observe.
       */
-    public void add(ActionWidget widget)
+    public void add(Object widget)
     {
-        this.widgets.add( widget );
+        this.widgets.add( ActionWidget.from( widget ) );
     }
     
     /** Sets the visibility of the widgets for this action.
@@ -50,8 +51,18 @@ public class Action {
       */
     public void setVisible(boolean visible)
     {
-        for(ActionWidget widget: widgets) {
-            widget.setVisible( visible );
+        for(ActionWidget widgetAction: widgets) {
+            widgetAction.setVisible( visible );
+        }
+    }
+    
+    /** Sets the sensibility of the widgets for this action.
+      * @param sensitivity whether it is enabled or not.
+      */
+    public void setEnabled(boolean sensitivity)
+    {
+        for(ActionWidget widgetAction: widgets) {
+            widgetAction.setEnabled( sensitivity );
         }
     }
     
@@ -61,6 +72,10 @@ public class Action {
     public void set(Runnable f)
     {
         this.doIt = f;
+        
+        for(ActionWidget widgetAction: widgets) {
+            widgetAction.set( f );
+        }
     }
     
     /** @return the Runnable object as action. */
