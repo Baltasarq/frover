@@ -87,6 +87,8 @@ public abstract class DirBrowserCtrl {
         return this.dirBrowser;
     }
     
+    
+    
     /** @return the chosen entry (dir or file), or false if nothing is selected. */
     public Entry getChosenEntry()
     {

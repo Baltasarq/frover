@@ -9,8 +9,9 @@ import java.io.IOException;
 
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowAdapter;
-import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
+import java.awt.KeyEventDispatcher;
+import java.awt.KeyboardFocusManager;
 import java.awt.MenuShortcut;
 import java.awt.Desktop;
 import java.awt.Toolkit;
@@ -21,12 +22,15 @@ import com.devbaltasarq.frover.core.AppInfo;
 import com.devbaltasarq.frover.core.Size;
 import com.devbaltasarq.frover.core.Cfg;
 import com.devbaltasarq.frover.core.Entry;
+import com.devbaltasarq.frover.core.entries.Directory;
+import com.devbaltasarq.frover.core.entries.File;
 import com.devbaltasarq.frover.ui.tools.Action;
 import com.devbaltasarq.frover.ui.dirbrowser.DirBrowserCtrl;
 import com.devbaltasarq.frover.ui.tools.Logger;
 import com.devbaltasarq.frover.ui.box.MessageBox;
 import com.devbaltasarq.frover.ui.box.InputBox;
 import com.devbaltasarq.frover.ui.box.AskBox;
+import com.devbaltasarq.frover.ui.components.PathList;
 import com.devbaltasarq.frover.ui.mainwindow.MainWindowView;
 
 
@@ -48,12 +52,14 @@ public class MainWindow extends DirBrowserCtrl {
         this.actionAbout = new Action( "about", "About" );
         this.actionQuit = new Action( "quit", "Quit" );
         this.actionHelp = new Action( "help", "Help" );
+        this.actionNew = new Action( "new", "New" );
         this.actionRename = new Action( "rename", "Rename" );
         this.actionShowHidden = new Action( "show_hidden", "Show hidden" );
         this.actionCopy = new Action( "copy", "Copy" );
         this.actionMove = new Action( "move", "Move" );
         this.actionDelete = new Action( "delete", "Delete" );
         this.actionView = new Action( "view", "View" );
+        this.actionRefresh = new Action( "refresh", "Refresh" );
         this.actionViewOutput = new Action( "view_output", "View output" );
         
         this.buildListeners();
@@ -84,138 +90,91 @@ public class MainWindow extends DirBrowserCtrl {
         this.getView().getFileChoicePanel().setSelectFileAction(
                                                 (p) -> this.doView( p ) );
         
-        this.getView().getWindow().addWindowListener(new WindowAdapter() {
+        this.getView().getFrame().addWindowListener( new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent we)
             {
                 MainWindow.this.actionQuit.doIt();
-            }
-            
-            public void keyPressed(KeyEvent e)
-            {
-                if ( e.getKeyCode() == KeyEvent.VK_F1 ) {
-                    
-                }
-            }
-        });
+            }});
         
+        final var KEY_MAN = KeyboardFocusManager.getCurrentKeyboardFocusManager();
+        KEY_MAN.addKeyEventDispatcher( new KeyboardDispatcher() );
+
         this.buildMenuListeners();
     }
     
     private void buildActions()
     {
         // View output
-//        this.actionViewOutput.add( this.view.getAbout() );
+        this.actionViewOutput.add( this.getView().getOpAbout() );
         this.actionAbout.set( () -> this.doAbout());
         
         // Quit
-//        this.actionQuit.add( this.view.getOpQuit() );
+        this.actionQuit.add( this.getView().getOpQuit() );
         this.actionQuit.set( () -> System.exit( 0 ) );
         
         // Help
-//        this.actionHelp.add( this.view.getHelpButton() );
-//        this.actionHelp.add( this.view.getOpHelp() );
+        this.actionHelp.add( this.getView().getHelpButton() );
+        this.actionHelp.add( this.getView().getOpHelp() );
         this.actionHelp.set( () -> this.doHelp() );
         
+        // New
+        this.actionNew.add( this.getView().getOpNew() );
+        this.actionNew.set( () -> this.doNew() );
+        
         // Rename
-//        this.actionRename.add( this.view.getRenameButton() );
-//        this.actionRename.add( this.view.getOpRename() );
+        this.actionRename.add( this.getView().getRenameButton() );
+        this.actionRename.add( this.getView().getOpRename() );
         this.actionRename.set( () -> this.doRename() );
         
         // Copy
-//        this.actionCopy.add( this.view.getCopyButton() );
-//        this.actionCopy.add( this.view.getOpCopy() );       
+        this.actionCopy.add( this.getView().getCopyButton() );
+        this.actionCopy.add( this.getView().getOpCopy() );       
         this.actionCopy.set( () -> this.doCopy() );
         
         // Move
-//        this.actionMove.add( this.view.getMoveButton() );
-//        this.actionMove.add( this.view.getOpMove() );       
+        this.actionMove.add( this.getView().getMoveButton() );
+        this.actionMove.add( this.getView().getOpMove() );       
         this.actionMove.set( () -> this.doMove() );
         
         // Delete
-//        this.actionDelete.add( this.view.getDeleteButton() );
-//        this.actionDelete.add( this.view.getOpDelete() );       
+        this.actionDelete.add( this.getView().getDeleteButton() );
+        this.actionDelete.add( this.getView().getOpDelete() );       
         this.actionDelete.set( () -> this.doDelete() );
         
         // View
-//        this.actionView.add( this.view.getViewButton() );
-//        this.actionView.add( this.view.getOpView() );       
-        //this.actionView.set( () -> this.doView() );
+        this.actionView.add( this.getView().getViewButton() );
+        this.actionView.add( this.getView().getOpView() );       
+        this.actionView.set( () -> this.doView() );
+        
+        // Refresh
+        this.actionRefresh.add( this.getView().getOpRefresh() );       
+        this.actionRefresh.set( () -> this.doRefresh());
         
         // Show hidden
-//        this.actionShowHidden.add( this.view.getShowHiddenButton() );
-//        this.actionShowHidden.add( this.view.getOpShowHidden() );       
+        this.actionShowHidden.add( this.getView().getOpShowHidden() );       
         this.actionShowHidden.set( () -> this.doShowHidden());
         
         // View output
-//        this.actionViewOutput.add( this.view.getOpViewOutput() );
+        this.actionViewOutput.add( this.getView().getOpViewOutput() );
         this.actionViewOutput.set( () -> this.doViewOutput());
     }
     
     private void buildMenuListeners()
     {
         final var OP_QUIT = this.getView().getOpQuit();
-        final var OP_RENAME = this.getView().getOpRename();
         final var OP_COPY = this.getView().getOpCopy();
         final var OP_MOVE = this.getView().getOpMove();
         final var OP_DELETE = this.getView().getOpDelete();
-        final var OP_VIEW = this.getView().getOpView();
-        final var OP_SHOW_HIDDEN = this.getView().getOpShowHidden();
-        final var OP_VIEW_OUTPUT = this.getView().getOpViewOutput();
-        final var OP_ABOUT = this.getView().getAbout();
+        final var OP_NEW = this.getView().getOpNew();
+        final var OP_REFRESH = this.getView().getOpRefresh();
         
         OP_QUIT.setShortcut( new MenuShortcut( KeyEvent.VK_Q ) );
-        OP_RENAME.setShortcut( new MenuShortcut( KeyEvent.VK_F2 ) );
+        OP_NEW.setShortcut( new MenuShortcut( KeyEvent.VK_N ) );
         OP_COPY.setShortcut( new MenuShortcut( KeyEvent.VK_C ) );
         OP_MOVE.setShortcut( new MenuShortcut( KeyEvent.VK_C, true ) );
         OP_DELETE.setShortcut( new MenuShortcut( KeyEvent.VK_DELETE ) );
-        OP_VIEW.setShortcut( new MenuShortcut( KeyEvent.VK_F5 ) );
-        OP_SHOW_HIDDEN.setShortcut( new MenuShortcut( KeyEvent.VK_F6 ) );
-
-        // OpQuit
-        OP_QUIT.addActionListener( (ActionEvent e) -> {
-            this.actionQuit.doIt();
-        });
-        
-        // OpView
-        OP_VIEW.addActionListener( (ActionEvent e) -> {
-            this.actionView.doIt();
-        });
-        
-        // OpShowHidden
-        OP_SHOW_HIDDEN.addActionListener( (ActionEvent e) -> {
-            this.actionShowHidden.doIt();
-        });
-        
-        // OpViewOutput
-        OP_VIEW_OUTPUT.addActionListener( (ActionEvent e) -> {
-            this.actionViewOutput.doIt();
-        });
-        
-        // OpAbout
-        OP_ABOUT.addActionListener(  (ActionEvent e) -> {
-            this.actionAbout.doIt();
-        });
-        
-        // OpDelete
-        OP_DELETE.addActionListener(  (ActionEvent e) -> {
-            this.actionDelete.doIt();
-        });
-        
-        // OpDelete
-        OP_COPY.addActionListener(  (ActionEvent e) -> {
-            this.actionCopy.doIt();
-        });
-        
-        // OpMove
-        OP_MOVE.addActionListener(  (ActionEvent e) -> {
-            this.actionMove.doIt();
-        });
-        
-        // OpRename
-        OP_RENAME.addActionListener(  (ActionEvent e) -> {
-            this.actionRename.doIt();
-        });
+        OP_REFRESH.setShortcut( new MenuShortcut( KeyEvent.VK_F5 ) );
     }
     
     @Override
@@ -261,7 +220,78 @@ public class MainWindow extends DirBrowserCtrl {
     /** Help action */
     public void doHelp()
     {
-        this.log.i( "launching help" );
+        final Desktop DESKTOP = Desktop.getDesktop();
+
+        try {
+            this.log.i( "launching browser for: `" + AppInfo.WIKI_WEB + "`" );
+            DESKTOP.browse( new java.io.File( AppInfo.WIKI_WEB ).toURI() );
+        } catch(IOException | UnsupportedOperationException exc)
+        {
+            final String ERR_MSG = "Problem browsing: `"
+                                        + AppInfo.WIKI_WEB + "`";
+
+            this.log.e( ERR_MSG + ": " + exc.getMessage() );
+            this.setStatus( ERR_MSG );
+        }
+    }
+    
+    /** New action. */
+    public void doNew()
+    {
+        final PathList DIR_CHOICE = this.getView().getDirChoicePanel().getDirList();
+        String msg = "Create a new ";
+        boolean createDir = false;
+        String entryType = "file";
+        
+        log.i( "creating new..." );
+        
+        if ( DIR_CHOICE.isFocusOwner() ) {
+            createDir = true;
+            entryType = "directory";
+        }
+
+        msg += entryType;
+        
+        final InputBox INPUT_BOX = new InputBox(
+                                this.getView().getWindow(),
+                                this.actionNew.getLabel() + " - " + AppInfo.NAME,
+                                msg,
+                                "" );
+        
+        String entryName = INPUT_BOX.run();
+        String status = "";
+        
+        log.i( "\tcreating new " + entryType );
+        
+        if ( entryName != null
+          && !entryName.isEmpty() )
+        {
+            final Path PATH = Path.of(
+                                this.getDirBrowser().getPath().toString(),
+                                entryName );
+            Entry entry = null;
+            
+            try {
+                if ( createDir ) {
+                    entry = new Directory( PATH );
+                } else {
+                    entry = new File( PATH );
+                }
+                
+                entry.create();
+                status = "created: " + entryName;
+                log.i( "\t" + status );
+                this.syncToCurrentDir();
+            } catch(IOException exc) {
+                status = "creating `" + entryName + "`: " + exc.getMessage();
+                log.e( status );
+            }
+        } else {
+            status = "cancelled by user";
+            this.log.i( "\t" + status );
+        }
+        
+        this.setStatus( status );
     }
     
     /** Rename action */
@@ -273,10 +303,12 @@ public class MainWindow extends DirBrowserCtrl {
         this.log.i( status );
         
         if ( ENTRY != null ) {
+            final String FILE_NAME = ENTRY.getFileName();
             final var INPUT_BOX = new InputBox(
                                         this.view.getWindow(),
                                         this.actionRename.getLabel(),
-                                        "New name for: `" + ENTRY.getFileName() + "`" );
+                                        "New name for: `" + FILE_NAME + "`",
+                                        FILE_NAME );
             String newName = INPUT_BOX.run();
             
             this.log.i( "\trenaming from: `" + ENTRY.asCanonical() + "`" );
@@ -285,7 +317,10 @@ public class MainWindow extends DirBrowserCtrl {
               && !newName.isEmpty() )
             {
                 // Set target
-                final Entry NEW_ENTRY = Entry.from( Path.of( ENTRY.getParentPath(), newName ).toFile() );
+                final Entry NEW_ENTRY = Entry.from(
+                                                Path.of(
+                                                    ENTRY.getParentPath(),
+                                                        newName ).toFile() );
 
                 if ( this.askToContinueBecauseExists( NEW_ENTRY ) ) {
                     try {
@@ -387,22 +422,28 @@ public class MainWindow extends DirBrowserCtrl {
     {
         Entry toret = null;
         
-        log.i( "Prepare to copy: `" + ENTRY.asCanonical() + "`" );
+        log.i( "prepare to " + verb );
         
-        try {
-            final FileOpsDialog DLG_COPY = new FileOpsDialog(
-                                               this.getView().getFrame(),
-                                               ENTRY );
-            
-            Path targetPath = DLG_COPY.show();
-            
-            if ( targetPath != null ) {
-                toret = Entry.from( targetPath.toFile() );
-            } else {
-                log.i( "\tcancelled by user" );
+        if ( ENTRY != null ) {
+            log.i( "\t" + verb + ": `" + ENTRY.asCanonical() + "`" );
+
+            try {
+                final FileOpsDialog DLG_COPY = new FileOpsDialog(
+                                                   this.getView().getFrame(),
+                                                   ENTRY );
+
+                Path targetPath = DLG_COPY.show();
+
+                if ( targetPath != null ) {
+                    toret = Entry.from( targetPath.toFile() );
+                } else {
+                    log.i( "\tcancelled by user" );
+                }
+            } catch(IOException exc) {
+                log.e( "\twhile " + verb + ": `" + ENTRY + "`: " + exc.getMessage() );
             }
-        } catch(IOException exc) {
-            log.e( "\twhile " + verb + ": `" + ENTRY + "`: " + exc.getMessage() );
+        } else {
+            log.i( "\tmissing file selection ");
         }
         
         return toret;
@@ -470,23 +511,45 @@ public class MainWindow extends DirBrowserCtrl {
         this.setStatus( status );
     }
     
+    /** View action. */
+    public void doView()
+    {
+        final Entry ENTRY = this.getChosenEntry();
+                                        
+        if ( ENTRY != null ) {
+            this.doView( ENTRY.getPath() );
+        } else {
+            String status = "missing selection";
+            
+            log.i( status );
+            this.setStatus( status );
+        }
+    }
+    
     /** View action
       * @param FILE the file selected.
       */
     public void doView(final Path FILE)
     {
         final Desktop DESKTOP = Desktop.getDesktop();
+        String status = "view " + FILE;
 
         try {
             this.log.i( "view `" + FILE.toString() + "`" );
             DESKTOP.open( FILE.toFile() );
         } catch(IOException exc)
         {
-            final String ERR_MSG = "Problem opening: `" + FILE.toString() + "`";
-
-            this.log.e( ERR_MSG );
-            this.setStatus( ERR_MSG );
+            status = "problem opening: `" + FILE.toString() + "`: " + exc.toString();
+            this.log.e( status );
         }
+        
+        this.setStatus( status );        
+    }
+    
+    /** Refresh action. */
+    public void doRefresh()
+    {
+        this.syncToCurrentDir();
     }
     
     /** Show hidden action. */
@@ -563,13 +626,44 @@ public class MainWindow extends DirBrowserCtrl {
     private final Action actionAbout;
     private final Action actionQuit;
     private final Action actionHelp;
+    private final Action actionNew;
     private final Action actionRename;
     private final Action actionCopy;
     private final Action actionMove;
     private final Action actionDelete;
     private final Action actionView;
     private final Action actionShowHidden;
+    private final Action actionRefresh;
     private final Action actionViewOutput;
     
     private final Logger log;
+    
+    private class KeyboardDispatcher implements KeyEventDispatcher {
+        @Override
+        public boolean dispatchKeyEvent(KeyEvent e)
+        {
+            if ( e.getID() == KeyEvent.KEY_PRESSED ) {
+                switch ( e.getKeyCode() ) {
+                    case KeyEvent.VK_F1 -> {
+                        MainWindow.this.actionHelp.doIt();
+                        return true;
+                    }
+                    case KeyEvent.VK_F2 -> {
+                        MainWindow.this.actionRename.doIt();
+                        return true;
+                    }
+                    case KeyEvent.VK_F5 -> {
+                        MainWindow.this.actionView.doIt();
+                        return true;
+                    }
+                    case KeyEvent.VK_F6 -> {
+                        MainWindow.this.actionShowHidden.doIt();
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+    }
 }

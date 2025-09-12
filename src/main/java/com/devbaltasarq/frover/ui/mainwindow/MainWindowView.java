@@ -107,7 +107,7 @@ public class MainWindowView extends DirBrowserView {
         this.btCopy.setForeground( Color.BLUE );
         this.btCopy.setBackground( Color.WHITE );
         
-        this.btDelete = new Button( "Del Delete" );
+        this.btDelete = new Button( "Ctrl+Del Delete" );
         this.btDelete.setFont( font );
         this.btDelete.setForeground( Color.BLUE );
         this.btDelete.setBackground( Color.WHITE );
@@ -152,13 +152,16 @@ public class MainWindowView extends DirBrowserView {
         this.mFile.add( opQuit );
         
         this.mEdit = new Menu( "Edit" );
-        this.opRename = new MenuItem( "Rename" );   
+        this.opNew = new MenuItem( "New" );
+        this.opRename = new MenuItem( "Rename" );
         this.opCopy = new MenuItem( "Copy" );
         this.opMove = new MenuItem( "Move" );
         this.opDelete = new MenuItem( "Delete" );
         this.opView = new MenuItem( "View" );
+        this.opRefresh = new MenuItem( "Refresh" );
         this.opShowHidden = new MenuItem( "Show hidden" );
         
+        this.mEdit.add( this.opNew );
         this.mEdit.add( this.opView );
         this.mEdit.add( this.opRename );
         this.mEdit.add( this.opCopy );
@@ -168,6 +171,7 @@ public class MainWindowView extends DirBrowserView {
         
         this.mView = new Menu( "View" );
         this.opViewOutput = new MenuItem( "View output" );
+        this.mView.add( this.opRefresh );
         this.mView.add( this.opViewOutput );
         
         this.mHelp = new Menu( "Help" );
@@ -193,7 +197,7 @@ public class MainWindowView extends DirBrowserView {
     }
     
     /** @return the Help >> about option. */
-    public MenuItem getAbout()
+    public MenuItem getOpAbout()
     {
         return this.opAbout;
     }
@@ -208,6 +212,12 @@ public class MainWindowView extends DirBrowserView {
     public MenuItem getOpView()
     {
         return this.opView;
+    }
+    
+    /** @return the Edit >> new option. */
+    public MenuItem getOpNew()
+    {
+        return this.opNew;
     }
     
     /** @return the Edit >> rename option. */
@@ -240,10 +250,22 @@ public class MainWindowView extends DirBrowserView {
         return this.opShowHidden;
     }
     
+    /** @return the View >> Refresh option. */
+    public MenuItem getOpRefresh()
+    {
+        return this.opRefresh;
+    }
+    
     /** @return the View >> View output option. */
     public MenuItem getOpViewOutput()
     {
         return this.opViewOutput;
+    }
+    
+    /** @return the menu item for help >> help. */
+    public MenuItem getOpHelp()
+    {
+        return this.opHelp;
     }
     
     /** @return the text field that acts as a status bar. */
@@ -288,6 +310,12 @@ public class MainWindowView extends DirBrowserView {
         return this.btView;
     }
     
+    /** @return the button in the toolbar for rename. */
+    public Button getDeleteButton()
+    {
+        return this.btDelete;
+    }
+    
     /** @return the widget for the list of directories. */
     @Override
     public DirChoicePanel getDirChoicePanel()
@@ -314,10 +342,12 @@ public class MainWindowView extends DirBrowserView {
     private MenuBar mbMainMenu;
     private MenuItem opQuit;
     private MenuItem opView;
+    private MenuItem opNew;
     private MenuItem opRename;
     private MenuItem opCopy;
     private MenuItem opMove;
     private MenuItem opDelete;
+    private MenuItem opRefresh;
     private MenuItem opShowHidden;
     private MenuItem opViewOutput;
     private MenuItem opHelp;

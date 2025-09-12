@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.io.IOException;
+import java.io.FileOutputStream;
 
 import com.devbaltasarq.frover.core.Entry;
 
@@ -76,11 +77,18 @@ public class File extends Entry {
     
     public void create() throws IOException
     {
-        if ( !this.getFile().createNewFile() ) {
+        try {
+            final Path CREATED_FILE = Files.createFile( this.getPath() );
+            
+            try (final var C_OUT = new FileOutputStream( CREATED_FILE.toFile() ) )
+            {
+                C_OUT.write( ' ' );
+            }
+        } catch(IOException exc) {
             throw new IOException(
                             "error creating file or already exists: `"
                             + this.asCanonical()
-                            + "`" );
+                            + "`" );            
         }
         
         return;

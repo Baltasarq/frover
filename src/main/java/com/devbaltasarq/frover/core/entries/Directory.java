@@ -6,8 +6,6 @@ package com.devbaltasarq.frover.core.entries;
 
 import java.nio.file.Path;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 
 import com.devbaltasarq.frover.core.Entry;
 import com.devbaltasarq.frover.core.DirBrowser;
@@ -23,7 +21,9 @@ public class Directory extends Entry {
     {        
         super( path );
         
-        if ( !path.toFile().isDirectory() ) {
+        if ( path.toFile().exists()
+         && !path.toFile().isDirectory() )
+        {
             throw new IOException(
                         "Directory: path is not a dir: " + path.toFile() );
         }
