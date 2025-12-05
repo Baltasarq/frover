@@ -20,7 +20,9 @@ import com.devbaltasarq.frover.core.entries.Directory;
   */
 public class DirBrowser {
     public static final Comparator<? super Path> ALPHA_SORTER =
-                                            (p1, p2) -> p1.compareTo( p2 );
+                            (p1, p2) ->
+                                p1.getFileName().toString().toLowerCase()
+                                    .compareTo( p2.getFileName().toString().toLowerCase() );
     
     /** Creates a new DirBrowser pointing to the user's home directory.
       * @throws IOException if the user's path is null.
