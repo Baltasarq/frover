@@ -29,12 +29,12 @@ public class Ppal {
         System.out.println( AppInfo.getFullName() );
         System.out.println( "User path: `" + path + "`" );
         
-        if ( args.length > 1 ) {
-            path = Path.of( args[ 1 ] );
+        if ( args.length > 0 ) {
+            path = Path.of( args[ 0 ] );
             System.out.println( "Setting given path: `" + path + "`" );
         }
         
         var mainWin = new MainWindow( path );
-        mainWin.show();
+        mainWin.run();
     }
 }
