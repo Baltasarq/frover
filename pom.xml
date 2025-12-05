@@ -10,4 +10,32 @@
         <maven.compiler.release>24</maven.compiler.release>
         <exec.mainClass>com.devbaltasarq.frover.Ppal</exec.mainClass>
     </properties>
+    <name>frover</name>
+    <description>A simple file browser.</description>
+    <build>
+            <resources>
+                <resource>
+                  <directory>src/main/assets</directory>
+                </resource>
+            </resources>
+   
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.4.2</version>
+        <configuration>
+          <archive>
+            <index>true</index>
+            <manifest>
+              <mainClass>com.devbaltasarq.frover.Ppal</mainClass>
+              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+              <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+              <addClasspath>true</addClasspath>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>
