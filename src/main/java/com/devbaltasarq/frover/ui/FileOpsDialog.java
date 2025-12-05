@@ -4,7 +4,6 @@
 package com.devbaltasarq.frover.ui;
 
 
-import com.devbaltasarq.frover.ui.dirbrowser.DirBrowserCtrl;
 import com.devbaltasarq.frover.ui.fileopsdialog.FileOpsDialogView;
 import com.devbaltasarq.frover.core.Entry;
 import com.devbaltasarq.frover.core.DirBrowser;
@@ -21,7 +20,7 @@ import java.nio.file.Path;
 /** Allows the copying files.
   * @author baltasarq
   */
-public class FileOpsDialog extends DirBrowserCtrl {
+public class FileOpsDialog extends Browser {
     /** Create a new copy file dialog.
       * @param owner the frame (MainWindow) for this dialog.
       * @param fileToCopy an Entry.File representing the file to copy.

@@ -4,10 +4,12 @@
 package com.devbaltasarq.frover.ui.mainwindow;
 
 
-import com.devbaltasarq.frover.ui.dirbrowser.DirBrowserView;
+import com.devbaltasarq.frover.ui.browser.BrowserView;
 import com.devbaltasarq.frover.ui.components.DirChoicePanel;
 import com.devbaltasarq.frover.ui.components.FileChoicePanel;
 import com.devbaltasarq.frover.ui.components.OutputPanel;
+import com.devbaltasarq.frover.ui.components.ImageButton;
+
 import java.awt.Font;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -20,14 +22,19 @@ import java.awt.MenuBar;
 import java.awt.MenuItem;
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
+import java.net.URL;
+import java.awt.Image;
+import java.awt.Toolkit;
 
 
 /** App's main window
   * @author baltasarq
   */
-public class MainWindowView extends DirBrowserView {
-    public static final Dimension MIN_SIZE = new Dimension( 500, 400 );
-    public static final Dimension START_SIZE = new Dimension( 620, 460 );
+public class MainWindowView extends BrowserView {
+    private static final Dimension MIN_SIZE = new Dimension( 500, 400 );
+    private static final Dimension START_SIZE = new Dimension( 620, 460 );
+    private static final String ETQ_ICON_APP = "icon.png";
+    private static final String ETQ_ICON_DIR_UP = "dir_up.png";
     
     public MainWindowView()
     {
@@ -39,12 +46,12 @@ public class MainWindowView extends DirBrowserView {
         super( FRAME );
         
         this.getFrame().setLocationByPlatform( true );
-        this.Build();
+        this.build();
         this.getWindow().setSize( START_SIZE );
         this.getWindow().setMinimumSize( MIN_SIZE );
     }
     
-    private void Build()
+    private void build()
     {
         final var LYB = (BorderLayout) this.getWindow().getLayout();
         final var LY_TOOLBAR = new BorderLayout();
@@ -53,6 +60,7 @@ public class MainWindowView extends DirBrowserView {
         final var PNL_TOOLBAR = new Panel( LY_OUTPUT );
         final var PNL_MAIN = new Panel( new GridLayout( 1, 2 ) );
         
+        this.buildIcons();
         this.getFrame().setMenuBar( this.buildMenu() );
         
         LYB.setHgap( 5 );
@@ -73,13 +81,25 @@ public class MainWindowView extends DirBrowserView {
         
         this.getWindow().add( PNL_TOOLBAR, BorderLayout.CENTER );
         this.getWindow().add( this.buildStatusBar(), BorderLayout.SOUTH );
+        this.getWindow().setIconImage( this.iconApp );
         this.getWindow().pack();
     }
     
-    /** @return the frame of this window view. */
-    public final Frame getFrame()
+        /** Retrieves icons from jar for future use */
+    private void buildIcons()
     {
-        return (Frame) super.getWindow();
+        try {
+            URL url;
+            
+            url = ClassLoader.getSystemResource( ETQ_ICON_APP );
+            this.iconApp = Toolkit.getDefaultToolkit().getImage( url );
+            
+            url = ClassLoader.getSystemResource( ETQ_ICON_DIR_UP );
+            this.iconDirUp = Toolkit.getDefaultToolkit().getImage( url );
+        } catch(Exception exc)
+        {
+            System.err.println( "Could not load icon `" + ETQ_ICON_APP + "` from resources.");
+        }
     }
     
     private Panel buildOutput()
@@ -194,6 +214,12 @@ public class MainWindowView extends DirBrowserView {
         this.sbStatus.setEditable( false );
         
         return this.sbStatus;
+    }
+        
+    /** @return the frame of this window view. */
+    public final Frame getFrame()
+    {
+        return (Frame) super.getWindow();
     }
     
     /** @return the Help >> about option. */
@@ -357,4 +383,6 @@ public class MainWindowView extends DirBrowserView {
     private Button btCopy;
     private Button btDelete;
     private Button btHelp;
+    private Image iconApp;
+    private Image iconDirUp;
 }

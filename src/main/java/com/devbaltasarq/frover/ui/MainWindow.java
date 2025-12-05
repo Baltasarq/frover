@@ -21,11 +21,11 @@ import java.awt.datatransfer.StringSelection;
 import com.devbaltasarq.frover.core.AppInfo;
 import com.devbaltasarq.frover.core.Size;
 import com.devbaltasarq.frover.core.Cfg;
+import com.devbaltasarq.frover.core.DirBrowser;
 import com.devbaltasarq.frover.core.Entry;
 import com.devbaltasarq.frover.core.entries.Directory;
 import com.devbaltasarq.frover.core.entries.File;
 import com.devbaltasarq.frover.ui.tools.Action;
-import com.devbaltasarq.frover.ui.dirbrowser.DirBrowserCtrl;
 import com.devbaltasarq.frover.ui.tools.Logger;
 import com.devbaltasarq.frover.ui.box.MessageBox;
 import com.devbaltasarq.frover.ui.box.InputBox;
@@ -37,7 +37,7 @@ import com.devbaltasarq.frover.ui.mainwindow.MainWindowView;
 /** Control for MainWindow.
   * @author baltasarq
   */
-public class MainWindow extends DirBrowserCtrl {
+public class MainWindow extends Browser {
     public MainWindow(Path path)
     {
         this( new MainWindowView(), path );
@@ -62,15 +62,36 @@ public class MainWindow extends DirBrowserCtrl {
         this.actionRefresh = new Action( "refresh", "Refresh" );
         this.actionViewOutput = new Action( "view_output", "View output" );
         
+        this.build( path );
+    }
+    
+    private void build(Path path)
+    {   
         this.buildListeners();
         this.getView().getOutput().setVisible( this.cfg.isOutputVisible().get() );
 
         this.log.i( AppInfo.getFullName() + "\n" );
-        this.doCd( path );
+        
+        try {
+            this.dirBrowser = new DirBrowser( path );
+        } catch(IOException exc) {
+            try {
+                this.dirBrowser = new DirBrowser();
+            } catch(IOException exc2) {
+                final String MSG = "booting failed";
+                
+                this.log.e( MSG );
+                final var MBOX = new MessageBox(
+                                        this.getView().getFrame(),
+                                        AppInfo.NAME,
+                                        "ERROR: " + MSG );
+                MBOX.run();
+            }
+        }
     }
     
     /** Starts the app by showing it. */
-    public void show()
+    public void run()
     {
         this.getView().getWindow().setVisible( true );
     }
@@ -92,9 +113,15 @@ public class MainWindow extends DirBrowserCtrl {
         
         this.getView().getFrame().addWindowListener( new WindowAdapter() {
             @Override
+            public void windowActivated(WindowEvent we)
+            {
+                MainWindow.this.syncToCurrentDir();
+            }
+            
+            @Override
             public void windowClosing(WindowEvent we)
             {
-                MainWindow.this.actionQuit.doIt();
+                MainWindow.this.doQuit();
             }});
         
         final var KEY_MAN = KeyboardFocusManager.getCurrentKeyboardFocusManager();
@@ -106,17 +133,21 @@ public class MainWindow extends DirBrowserCtrl {
     private void buildActions()
     {
         // View output
-        this.actionViewOutput.add( this.getView().getOpAbout() );
-        this.actionAbout.set( () -> this.doAbout());
-        
-        // Quit
-        this.actionQuit.add( this.getView().getOpQuit() );
-        this.actionQuit.set( () -> System.exit( 0 ) );
+        this.actionAbout.add( this.getView().getOpAbout() );
+        this.actionAbout.set( () -> this.doAbout() );
         
         // Help
         this.actionHelp.add( this.getView().getHelpButton() );
         this.actionHelp.add( this.getView().getOpHelp() );
         this.actionHelp.set( () -> this.doHelp() );
+        
+        // View output
+        this.actionViewOutput.add( this.getView().getOpViewOutput() );
+        this.actionViewOutput.set( () -> this.doViewOutput() );
+        
+        // Quit
+        this.actionQuit.add( this.getView().getOpQuit() );
+        this.actionQuit.set( () -> this.doQuit() );
         
         // New
         this.actionNew.add( this.getView().getOpNew() );
@@ -154,10 +185,6 @@ public class MainWindow extends DirBrowserCtrl {
         // Show hidden
         this.actionShowHidden.add( this.getView().getOpShowHidden() );       
         this.actionShowHidden.set( () -> this.doShowHidden());
-        
-        // View output
-        this.actionViewOutput.add( this.getView().getOpViewOutput() );
-        this.actionViewOutput.set( () -> this.doViewOutput());
     }
     
     private void buildMenuListeners()
@@ -215,6 +242,14 @@ public class MainWindow extends DirBrowserCtrl {
         }
         
         this.getView().getFrame().setTitle( dirName + " - " + AppInfo.NAME );
+    }
+    
+    /** Quit action **/
+    public void doQuit()
+    {
+        this.getView().getFrame().setVisible( false );
+        this.getView().getFrame().dispose();
+        System.exit( 0 );
     }
     
     /** Help action */
@@ -635,8 +670,9 @@ public class MainWindow extends DirBrowserCtrl {
     private final Action actionShowHidden;
     private final Action actionRefresh;
     private final Action actionViewOutput;
-    
+
     private final Logger log;
+
     
     private class KeyboardDispatcher implements KeyEventDispatcher {
         @Override

@@ -4,7 +4,7 @@
 package com.devbaltasarq.frover.ui.fileopsdialog;
 
 
-import com.devbaltasarq.frover.ui.dirbrowser.DirBrowserView;
+import com.devbaltasarq.frover.ui.browser.BrowserView;
 import com.devbaltasarq.frover.ui.components.DirChoicePanel;
 import com.devbaltasarq.frover.ui.components.FileChoicePanel;
 import com.devbaltasarq.frover.ui.components.TitledPanel;
@@ -23,7 +23,7 @@ import java.awt.TextField;
 /** The view of the copy dialog.
   * @author baltasarq
   */
-public class FileOpsDialogView extends DirBrowserView {
+public class FileOpsDialogView extends BrowserView {
     public static final Dimension MIN_SIZE = new Dimension( 400, 300 );
     public static final Dimension START_SIZE = new Dimension( 420, 320 );
     public static final Font FONT_MONO_16 = Font.decode( "monospaced-16" );

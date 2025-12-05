@@ -1,7 +1,7 @@
 // frover (c) 2025 Baltasar MIT License <baltasarq@gmail.com>
 
 
-package com.devbaltasarq.frover.ui.dirbrowser;
+package com.devbaltasarq.frover.ui;
 
 
 import com.devbaltasarq.frover.core.Cfg;
@@ -9,6 +9,7 @@ import com.devbaltasarq.frover.core.DirBrowser;
 import com.devbaltasarq.frover.core.Entry;
 import com.devbaltasarq.frover.core.entries.Directory;
 import com.devbaltasarq.frover.ui.components.PathList;
+import com.devbaltasarq.frover.ui.browser.BrowserView;
 
 import java.nio.file.Path;
 import java.io.IOException;
@@ -20,13 +21,13 @@ import java.util.List;
 /** Represents the controller for a window with a panel of directories and files.
   * @author baltasarq
   */
-public abstract class DirBrowserCtrl {
-    protected DirBrowserCtrl(DirBrowserView view)
+public abstract class Browser {
+    protected Browser(BrowserView view)
     {
         this( view, Cfg.get() );
     }
     
-    protected DirBrowserCtrl(DirBrowserView view, Cfg cfg)
+    protected Browser(BrowserView view, Cfg cfg)
     {
         this.view = view;
         this.cfg = cfg;
@@ -135,5 +136,5 @@ public abstract class DirBrowserCtrl {
    
     protected DirBrowser dirBrowser;
     protected final Cfg cfg;
-    protected final DirBrowserView view;
+    protected final BrowserView view;
 }

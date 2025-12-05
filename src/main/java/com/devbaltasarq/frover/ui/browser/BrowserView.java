@@ -1,7 +1,7 @@
 // frover (c) 2025 Baltasar MIT License <baltasarq@gmail.com>
 
 
-package com.devbaltasarq.frover.ui.dirbrowser;
+package com.devbaltasarq.frover.ui.browser;
 
 
 import com.devbaltasarq.frover.ui.components.DirChoicePanel;
@@ -12,8 +12,8 @@ import java.awt.Window;
 /** A view of a window with a panel for directories and files.
   * @author baltasarq
   */
-public abstract class DirBrowserView {
-    protected DirBrowserView(Window view)
+public abstract class BrowserView {
+    protected BrowserView(Window view)
     {
         this.view = view;
         this.view.setLocationByPlatform( true );
