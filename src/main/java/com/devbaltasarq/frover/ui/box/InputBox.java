@@ -14,6 +14,8 @@ import java.awt.Label;
 import java.awt.TextField;
 import java.awt.Font;
 import java.awt.Dimension;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
@@ -79,7 +81,30 @@ public class InputBox extends Dialog {
         PNL_BUTTONS.add( new Panel() );
         PNL_BUTTONS.add( this.btCancel );
         PNL_BUTTONS.add( this.btOk );
-        
+
+        this.edValue.addKeyListener( new KeyListener() {
+            @Override
+            public void keyTyped(KeyEvent evt)
+            {
+                
+            }
+            @Override
+            public void keyReleased(KeyEvent evt)
+            {
+                
+            }
+            @Override
+            public void keyPressed(KeyEvent evt)
+            {
+                if ( evt.getKeyCode() == KeyEvent.VK_ESCAPE ) {
+                    InputBox.this.doClose( false );
+                }
+                else
+                if ( evt.getKeyCode() == KeyEvent.VK_ENTER ) {
+                    InputBox.this.doClose( true );
+                }
+            }
+        });
         
         this.add( PNL_INNER, BorderLayout.CENTER );
         this.add( PNL_BUTTONS, BorderLayout.SOUTH );
