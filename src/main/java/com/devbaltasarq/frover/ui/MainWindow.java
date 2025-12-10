@@ -6,6 +6,7 @@ package com.devbaltasarq.frover.ui;
 
 import java.nio.file.Path;
 import java.io.IOException;
+import java.util.List;
 
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowAdapter;
@@ -38,6 +39,17 @@ import com.devbaltasarq.frover.ui.mainwindow.MainWindowView;
   * @author baltasarq
   */
 public class MainWindow extends Browser {
+    private final static List<String> WIN_SHELL = List.of(
+                                "cmd",
+                                "/c",
+                                "start",
+                                "cmd.exe" );
+
+    private final static List<String> NIX_SHELL =  List.of(
+                                "/usr/bin/xterm",
+                                "-fa", "Monospace",
+                                "-fs", "12" );
+    
     public MainWindow(Path path)
     {
         this( new MainWindowView(), path );
@@ -61,6 +73,7 @@ public class MainWindow extends Browser {
         this.actionView = new Action( "view", "View" );
         this.actionRefresh = new Action( "refresh", "Refresh" );
         this.actionViewOutput = new Action( "view_output", "View output" );
+        this.actionOpenShell = new Action( "open_shell", "Open shell" );
         
         this.build( path );
     }
@@ -145,6 +158,10 @@ public class MainWindow extends Browser {
         this.actionViewOutput.add( this.getView().getOpViewOutput() );
         this.actionViewOutput.set( () -> this.doViewOutput() );
         
+        // Open in shell
+        this.actionOpenShell.add( this.getView().getOpShell() );
+        this.actionOpenShell.set( () -> this.doOpenInShell() );
+        
         // Quit
         this.actionQuit.add( this.getView().getOpQuit() );
         this.actionQuit.set( () -> this.doQuit() );
@@ -194,6 +211,7 @@ public class MainWindow extends Browser {
         final var OP_MOVE = this.getView().getOpMove();
         final var OP_DELETE = this.getView().getOpDelete();
         final var OP_NEW = this.getView().getOpNew();
+        final var OP_SHELL = this.getView().getOpShell();
         final var OP_REFRESH = this.getView().getOpRefresh();
         
         OP_QUIT.setShortcut( new MenuShortcut( KeyEvent.VK_Q ) );
@@ -202,6 +220,7 @@ public class MainWindow extends Browser {
         OP_MOVE.setShortcut( new MenuShortcut( KeyEvent.VK_C, true ) );
         OP_DELETE.setShortcut( new MenuShortcut( KeyEvent.VK_DELETE ) );
         OP_REFRESH.setShortcut( new MenuShortcut( KeyEvent.VK_F5 ) );
+        OP_SHELL.setShortcut( new MenuShortcut( KeyEvent.VK_F4 ) );
     }
     
     @Override
@@ -578,7 +597,7 @@ public class MainWindow extends Browser {
             this.log.e( status );
         }
         
-        this.setStatus( status );        
+        this.setStatus( status );
     }
     
     /** Refresh action. */
@@ -644,6 +663,27 @@ public class MainWindow extends Browser {
         this.getView().getOutput().revalidate();
     }
     
+    /** Open in shell. */
+    public void doOpenInShell()
+    {
+        this.log.i( "opening shell in: " + this.dirBrowser.getDirectory() );
+        final Entry PATH = this.dirBrowser.getDirectory();
+        String status = "opening shell in: " + PATH;
+        
+        try {
+            final var PROCESS = new ProcessBuilder( NIX_SHELL )
+                                    .directory( PATH.getFile() );
+
+            PROCESS.start();
+        } catch(IOException exc)
+        {
+            status = "problem " + status + ": " + exc.getMessage();
+            this.log.e( status );
+        }
+        
+        this.setStatus( status );
+    }
+    
     private void setStatus(String msg)
     {
         final var STATUS = this.getView().getStatusBar();
@@ -670,6 +710,7 @@ public class MainWindow extends Browser {
     private final Action actionShowHidden;
     private final Action actionRefresh;
     private final Action actionViewOutput;
+    private final Action actionOpenShell;
 
     private final Logger log;
 
@@ -686,6 +727,10 @@ public class MainWindow extends Browser {
                     }
                     case KeyEvent.VK_F2 -> {
                         MainWindow.this.actionRename.doIt();
+                        return true;
+                    }
+                    case KeyEvent.VK_F4 -> {
+                        MainWindow.this.actionOpenShell.doIt();
                         return true;
                     }
                     case KeyEvent.VK_F5 -> {

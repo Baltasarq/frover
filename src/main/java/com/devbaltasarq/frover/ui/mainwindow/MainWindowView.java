@@ -8,7 +8,6 @@ import com.devbaltasarq.frover.ui.browser.BrowserView;
 import com.devbaltasarq.frover.ui.components.DirChoicePanel;
 import com.devbaltasarq.frover.ui.components.FileChoicePanel;
 import com.devbaltasarq.frover.ui.components.OutputPanel;
-import com.devbaltasarq.frover.ui.components.ImageButton;
 
 import java.awt.Font;
 import java.awt.Color;
@@ -194,6 +193,10 @@ public class MainWindowView extends BrowserView {
         this.mView.add( this.opRefresh );
         this.mView.add( this.opViewOutput );
         
+        this.mTools = new Menu( "Tools" );
+        this.opOpenShell = new MenuItem( "Open in shell" );
+        this.mTools.add( this.opOpenShell );
+        
         this.mHelp = new Menu( "Help" );
         this.opAbout = new MenuItem( "About" );
         this.opHelp = new MenuItem( "Help" );
@@ -203,6 +206,7 @@ public class MainWindowView extends BrowserView {
         this.mbMainMenu.add( this.mFile );
         this.mbMainMenu.add( this.mEdit );
         this.mbMainMenu.add( this.mView );
+        this.mbMainMenu.add( this.mTools );
         this.mbMainMenu.add( this.mHelp );
         
         return this.mbMainMenu;
@@ -280,6 +284,12 @@ public class MainWindowView extends BrowserView {
     public MenuItem getOpRefresh()
     {
         return this.opRefresh;
+    }
+    
+    /** @return the Tools >> Open Shell option. */
+    public MenuItem getOpShell()
+    {
+        return this.opOpenShell;
     }
     
     /** @return the View >> View output option. */
@@ -364,6 +374,7 @@ public class MainWindowView extends BrowserView {
     private Menu mFile;
     private Menu mEdit;
     private Menu mView;
+    private Menu mTools;
     private Menu mHelp;
     private MenuBar mbMainMenu;
     private MenuItem opQuit;
@@ -378,6 +389,7 @@ public class MainWindowView extends BrowserView {
     private MenuItem opViewOutput;
     private MenuItem opHelp;
     private MenuItem opAbout;
+    private MenuItem opOpenShell;
     private Button btView;
     private Button btRename;
     private Button btCopy;
