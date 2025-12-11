@@ -15,6 +15,8 @@ import java.awt.Panel;
 import java.awt.Dimension;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.KeyEvent;
 
 
 /** Represents a dialog box.
@@ -56,6 +58,9 @@ public class AskBox extends Dialog {
                 AskBox.this.doClose( false );
             }
         });
+        
+        this.btYes.addKeyListener( this.KEY_LISTENER ); 
+        this.btNo.addKeyListener( this.KEY_LISTENER );
     }
     
     /** Build the layout for this dialog. */
@@ -142,4 +147,28 @@ public class AskBox extends Dialog {
     private final Button btNo;
     private final String message;
     private final String question;
+    
+    private final KeyListener KEY_LISTENER = new KeyListener() {
+        @Override
+        public void keyPressed(KeyEvent evt)
+        {
+            if ( evt.getKeyCode() == KeyEvent.VK_ESCAPE ) {
+                AskBox.this.doClose( false );
+            }
+            else
+            if ( evt.getKeyCode() == KeyEvent.VK_ENTER ) {
+                AskBox.this.doClose( true );
+            }
+        }
+        @Override
+        public void keyReleased(KeyEvent evt)
+        {
+
+        }
+        @Override
+        public void keyTyped(KeyEvent evt)
+        {
+
+        }
+    };
 }

@@ -13,6 +13,8 @@ import java.awt.Font;
 import java.awt.Dimension;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 
 
 /** Represents a dialog box.
@@ -34,6 +36,27 @@ public class MessageBox extends Dialog {
         
         this.build();
         this.btOk.addActionListener( (evt) -> this.doClose() );
+        this.btOk.addKeyListener( new KeyListener() {
+            @Override
+            public void keyPressed(KeyEvent evt)
+            {
+                if ( evt.getKeyCode() == KeyEvent.VK_ENTER
+                  || evt.getKeyCode() == KeyEvent.VK_ESCAPE )
+                {
+                    MessageBox.this.doClose();
+                }
+            }
+            @Override
+            public void keyReleased(KeyEvent evt)
+            {
+                
+            }
+            @Override
+            public void keyTyped(KeyEvent evt)
+            {
+                
+            }
+        });
         this.addWindowListener( new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent we)

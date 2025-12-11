@@ -68,11 +68,19 @@ public class FileOpsDialog extends Browser {
             public void keyReleased(KeyEvent evt)
             {
                 FileOpsDialog.this.syncEdEndFile();
+                
+                if ( evt.getKeyCode() == KeyEvent.VK_ENTER ) {
+                    FileOpsDialog.this.accept();
+                }
+                else
+                if ( evt.getKeyCode() == KeyEvent.VK_ESCAPE ) {
+                    FileOpsDialog.this.close();
+                }
             }
-            
+
             @Override
             public void keyPressed(KeyEvent evt)
-            {   
+            {
             }
             
             @Override
