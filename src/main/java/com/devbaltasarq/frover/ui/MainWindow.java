@@ -7,6 +7,7 @@ package com.devbaltasarq.frover.ui;
 import java.nio.file.Path;
 import java.io.IOException;
 import java.util.List;
+import java.util.logging.Logger;
 
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowAdapter;
@@ -20,14 +21,14 @@ import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 
 import com.devbaltasarq.frover.core.AppInfo;
+import com.devbaltasarq.frover.core.Config;
+import com.devbaltasarq.frover.core.LogWriter;
 import com.devbaltasarq.frover.core.Size;
 import com.devbaltasarq.frover.core.Cfg;
 import com.devbaltasarq.frover.core.DirBrowser;
 import com.devbaltasarq.frover.core.Entry;
 import com.devbaltasarq.frover.core.entries.Directory;
 import com.devbaltasarq.frover.core.entries.File;
-import com.devbaltasarq.frover.ui.tools.Action;
-import com.devbaltasarq.frover.ui.tools.Logger;
 import com.devbaltasarq.frover.ui.box.MessageBox;
 import com.devbaltasarq.frover.ui.box.InputBox;
 import com.devbaltasarq.frover.ui.box.AskBox;
@@ -39,6 +40,7 @@ import com.devbaltasarq.frover.ui.mainwindow.MainWindowView;
   * @author baltasarq
   */
 public class MainWindow extends Browser {
+    private static final Logger LOG = Logger.getLogger( MainWindow.class.getName() );
     private final static List<String> WIN_SHELL = List.of(
                                 "cmd",
                                 "/c",
@@ -59,7 +61,13 @@ public class MainWindow extends Browser {
     {
         super( view );
         
-        this.log = new Logger( this.getView().getOutput() );
+        final var VIEW = (MainWindowView) this.view;
+        
+        this.config = Config.restore( AppInfo.NAME );
+        this.logViewer = new LogWriter( LOG, 
+                                   (str) ->
+                                        VIEW.getLogViewer().append( str + "\n" ));
+        LOG.addHandler( this.logViewer );
         
         this.actionAbout = new Action( "about", "About" );
         this.actionQuit = new Action( "quit", "Quit" );
@@ -76,14 +84,15 @@ public class MainWindow extends Browser {
         this.actionOpenShell = new Action( "open_shell", "Open shell" );
         
         this.build( path );
+        this.applyConfig();
     }
     
     private void build(Path path)
     {   
         this.buildListeners();
-        this.getView().getOutput().setVisible( this.cfg.isOutputVisible().get() );
+        this.getView().getLogViewer().setVisible( this.cfg.isOutputVisible().get() );
 
-        this.log.i( AppInfo.getFullName() + "\n" );
+        LOG.info( AppInfo.getFullName() + "\n" );
         
         try {
             this.dirBrowser = new DirBrowser( path );
@@ -93,7 +102,7 @@ public class MainWindow extends Browser {
             } catch(IOException exc2) {
                 final String MSG = "booting failed";
                 
-                this.log.e( MSG );
+                LOG.severe( MSG );
                 final var MBOX = new MessageBox(
                                         this.getView().getFrame(),
                                         AppInfo.NAME,
@@ -230,10 +239,10 @@ public class MainWindow extends Browser {
         
         try {
             super.syncToCurrentDir();
-            this.log.i( "sync `" + this.dirBrowser.getDirectory().asCanonical() + "`" );
+            LOG.info( "sync `" + this.dirBrowser.getDirectory().asCanonical() + "`" );
         } catch(IOException exc)
         {
-            this.log.e( exc.getMessage() );
+            LOG.severe( exc.getMessage() );
             status = "ERROR: " + exc.getMessage();
         }
         
@@ -268,6 +277,7 @@ public class MainWindow extends Browser {
     {
         this.getView().getFrame().setVisible( false );
         this.getView().getFrame().dispose();
+        this.saveConfig();
         System.exit( 0 );
     }
     
@@ -277,14 +287,14 @@ public class MainWindow extends Browser {
         final Desktop DESKTOP = Desktop.getDesktop();
 
         try {
-            this.log.i( "launching browser for: `" + AppInfo.WIKI_WEB + "`" );
+            LOG.info( "launching browser for: `" + AppInfo.WIKI_WEB + "`" );
             DESKTOP.browse( new java.io.File( AppInfo.WIKI_WEB ).toURI() );
         } catch(IOException | UnsupportedOperationException exc)
         {
             final String ERR_MSG = "Problem browsing: `"
                                         + AppInfo.WIKI_WEB + "`";
 
-            this.log.e( ERR_MSG + ": " + exc.getMessage() );
+            LOG.severe( ERR_MSG + ": " + exc.getMessage() );
             this.setStatus( ERR_MSG );
         }
     }
@@ -297,7 +307,7 @@ public class MainWindow extends Browser {
         boolean createDir = false;
         String entryType = "file";
         
-        log.i( "creating new..." );
+        LOG.info( "creating new..." );
         
         if ( DIR_CHOICE.isFocusOwner() ) {
             createDir = true;
@@ -315,7 +325,7 @@ public class MainWindow extends Browser {
         String entryName = INPUT_BOX.run();
         String status = "";
         
-        log.i( "\tcreating new " + entryType );
+        LOG.info( "\tcreating new " + entryType );
         
         if ( entryName != null
           && !entryName.isEmpty() )
@@ -334,15 +344,15 @@ public class MainWindow extends Browser {
                 
                 entry.create();
                 status = "created: " + entryName;
-                log.i( "\t" + status );
+                LOG.info( "\t" + status );
                 this.syncToCurrentDir();
             } catch(IOException exc) {
                 status = "creating `" + entryName + "`: " + exc.getMessage();
-                log.e( status );
+                LOG.severe( status );
             }
         } else {
             status = "cancelled by user";
-            this.log.i( "\t" + status );
+            LOG.info( "\t" + status );
         }
         
         this.setStatus( status );
@@ -354,7 +364,7 @@ public class MainWindow extends Browser {
         final Entry ENTRY = this.getChosenEntry();
         String status = "renaming...";
 
-        this.log.i( status );
+        LOG.info( status );
         
         if ( ENTRY != null ) {
             final String FILE_NAME = ENTRY.getFileName();
@@ -365,7 +375,7 @@ public class MainWindow extends Browser {
                                         FILE_NAME );
             String newName = INPUT_BOX.run();
             
-            this.log.i( "\trenaming from: `" + ENTRY.asCanonical() + "`" );
+            LOG.info( "\trenaming from: `" + ENTRY.asCanonical() + "`" );
 
             if ( newName != null
               && !newName.isEmpty() )
@@ -379,23 +389,23 @@ public class MainWindow extends Browser {
                 if ( this.askToContinueBecauseExists( NEW_ENTRY ) ) {
                     try {
                         ENTRY.renameTo( newName );
-                        log.i( "\trenamed to: `" + newName + "`" );
+                        LOG.info( "\trenamed to: `" + newName + "`" );
                         this.syncToCurrentDir();
                     } catch(IOException exc) {
                         status = "renaming to `" + newName + "`" + exc.getMessage();
-                        log.e( "\t" + status );
+                        LOG.severe( "\t" + status );
                     }
                 } else {
                     status = "cancelled by user";
-                    log.e( "\t + status ");
+                    LOG.severe( "\t + status ");
                 }
             } else {
                 status = "cancelled by user";
-                log.e( "\t" + status );
+                LOG.severe( "\t" + status );
             }
         } else {
             status = "missing file selection";
-            log.e( "\t" + status );
+            LOG.severe( "\t" + status );
         }
         
         this.setStatus( status );
@@ -414,21 +424,21 @@ public class MainWindow extends Browser {
             if ( TARGET != null
               && this.askToContinueBecauseExists( TARGET ) )
             {
-                log.i( "\tcopying from: `" + ENTRY.asCanonical()
+                LOG.info( "\tcopying from: `" + ENTRY.asCanonical()
                                 + "` to `" + TARGET.asCanonical()
                                 + "`" );
 
                 ENTRY.copy( TARGET );
                 status = "copied: `" + ENTRY + "`";
-                log.i( "\t" + status );
+                LOG.info( "\t" + status );
                 this.syncToCurrentDir();
             } else {
                 status = "cancelled by user";
-                log.e( "\t" + status );
+                LOG.severe( "\t" + status );
             }
         } catch(IOException exc) {
             status = "while " + VERB + ": `" + ENTRY + "`: " + exc.getMessage();
-            log.e( "\t" + status );
+            LOG.severe( "\t" + status );
         }
         
         this.setStatus( status );
@@ -447,20 +457,20 @@ public class MainWindow extends Browser {
             if ( TARGET != null
               && this.askToContinueBecauseExists( TARGET ) )
             {
-                log.i( "\tmoving from: `" + ENTRY.asCanonical()
+                LOG.info( "\tmoving from: `" + ENTRY.asCanonical()
                                 + "` to `" + TARGET.asCanonical()
                                 + "`" );
 
                 ENTRY.move( TARGET );
                 status = "moved: `" + ENTRY + "`";
-                log.i( "\t" + status );
+                LOG.info( "\t" + status );
                 this.syncToCurrentDir();
             } else {
                 status = "cancelled by user";
             }
         } catch(IOException exc) {
             status = "while " + VERB + ": `" + ENTRY + "`: " + exc.getMessage();
-            log.e( "\t" + status );
+            LOG.severe( "\t" + status );
         }
         
         this.setStatus( status );
@@ -476,10 +486,10 @@ public class MainWindow extends Browser {
     {
         Entry toret = null;
         
-        log.i( "prepare to " + verb );
+        LOG.info( "prepare to " + verb );
         
         if ( ENTRY != null ) {
-            log.i( "\t" + verb + ": `" + ENTRY.asCanonical() + "`" );
+            LOG.info( "\t" + verb + ": `" + ENTRY.asCanonical() + "`" );
 
             try {
                 final FileOpsDialog DLG_COPY = new FileOpsDialog(
@@ -491,13 +501,13 @@ public class MainWindow extends Browser {
                 if ( targetPath != null ) {
                     toret = Entry.from( targetPath.toFile() );
                 } else {
-                    log.i( "\tcancelled by user" );
+                    LOG.info( "\tcancelled by user" );
                 }
             } catch(IOException exc) {
-                log.e( "\twhile " + verb + ": `" + ENTRY + "`: " + exc.getMessage() );
+                LOG.severe( "\twhile " + verb + ": `" + ENTRY + "`: " + exc.getMessage() );
             }
         } else {
-            log.i( "\tmissing file selection ");
+            LOG.info( "\tmissing file selection ");
         }
         
         return toret;
@@ -548,18 +558,18 @@ public class MainWindow extends Browser {
                 if ( ENTRY.getFile().delete() ) {
                     status = "deleted: `" + FILE_NAME + "`";
                     this.syncToCurrentDir();
-                    this.log.i( status );
+                    LOG.info( status );
                 } else {
                     status = "unable to delete: `" + FILE_NAME + "`";
-                    this.log.e( status );
+                    LOG.severe( status );
                 }
             } else {
                 status = "cancelled by the user";
-                this.log.d( status );
+                LOG.info( status );
             }
         } else {
             status = "no dir/file selected";
-            this.log.e( status );
+            LOG.severe( status );
         }
         
         this.setStatus( status );
@@ -575,7 +585,7 @@ public class MainWindow extends Browser {
         } else {
             String status = "missing selection";
             
-            log.i( status );
+            LOG.info( status );
             this.setStatus( status );
         }
     }
@@ -589,12 +599,12 @@ public class MainWindow extends Browser {
         String status = "view " + FILE;
 
         try {
-            this.log.i( "view `" + FILE.toString() + "`" );
+            LOG.info( "view `" + FILE.toString() + "`" );
             DESKTOP.open( FILE.toFile() );
         } catch(IOException exc)
         {
             status = "problem opening: `" + FILE.toString() + "`: " + exc.toString();
-            this.log.e( status );
+            LOG.severe( status );
         }
         
         this.setStatus( status );
@@ -611,7 +621,7 @@ public class MainWindow extends Browser {
     {
         boolean val = !this.cfg.isShowingHiddenFiles().get();
         
-        this.log.i( "showHiddenFiles `" + val + "`" );
+        LOG.info( "showHiddenFiles `" + val + "`" );
         this.cfg.setShowHiddenFiles( Cfg.HiddenFilesVisibility.from( val ) );
         this.syncToCurrentDir();
     }
@@ -625,9 +635,9 @@ public class MainWindow extends Browser {
         boolean toret = super.cd( PATH );
         
         if ( toret ) {
-            this.log.i( "cd `" + PATH + "`" );
+            LOG.info( "cd `" + PATH + "`" );
         } else {
-            this.log.e( "cd `" + PATH + "`: cannot change to" );
+            LOG.severe( "cd `" + PATH + "`: cannot change to" );
         }
         
         return toret;
@@ -659,26 +669,32 @@ public class MainWindow extends Browser {
         boolean val = !this.cfg.isOutputVisible().get();
         
         this.cfg.setViewOutput( Cfg.OutputPanelVisibility.from( val ) );
-        this.getView().getOutput().setVisible( val );
-        this.getView().getOutput().revalidate();
+        this.getView().getLogViewer().setVisible( val );
+        this.getView().getLogViewer().revalidate();
     }
     
     /** Open in shell. */
     public void doOpenInShell()
     {
-        this.log.i( "opening shell in: " + this.dirBrowser.getDirectory() );
+        LOG.info( "opening shell in: " + this.dirBrowser.getDirectory() );
         final Entry PATH = this.dirBrowser.getDirectory();
         String status = "opening shell in: " + PATH;
+        List<String> cmd = NIX_SHELL;
+        final var OS_NAME = System.getProperty( "os.name" ).toLowerCase();
+        
+        if ( OS_NAME.contains( "windows" ) ) {
+            cmd = WIN_SHELL;
+        }
         
         try {
-            final var PROCESS = new ProcessBuilder( NIX_SHELL )
+            final var PROCESS = new ProcessBuilder( cmd )
                                     .directory( PATH.getFile() );
 
             PROCESS.start();
         } catch(IOException exc)
         {
             status = "problem " + status + ": " + exc.getMessage();
-            this.log.e( status );
+            LOG.severe( status );
         }
         
         this.setStatus( status );
@@ -698,6 +714,46 @@ public class MainWindow extends Browser {
         STATUS.setText( TXT );
     }
     
+    /** Applies the configuration to the app. */
+    private void applyConfig()
+    {
+        final var WIN = ( (MainWindowView) this.view ).getWindow();
+        String strWidth = this.config.get( Config.Key.WIDTH );
+        String strHeight = this.config.get( Config.Key.HEIGHT );
+        String strLeft = this.config.get( Config.Key.LEFT );
+        String strTop = this.config.get( Config.Key.TOP );
+        
+        if ( !strWidth.equals( "-1" )
+          && !strHeight.equals( "-1" ) )
+        {
+            WIN.setSize(
+                Integer.parseInt( strWidth ),
+                Integer.parseInt( strHeight ));
+        }
+        
+        if ( !strLeft.equals( "-1" )
+          && !strTop.equals( "-1" ) )
+        {
+            WIN.setLocation(
+                Integer.parseInt( strLeft ),
+                Integer.parseInt( strTop ));
+        }
+    }
+    
+    /** Saves the settings to the config. */
+    private void saveConfig()
+    {
+        final var WIN = ( (MainWindowView) this.view ).getWindow();
+        
+        this.config.add( Config.Key.WIDTH, "" + WIN.getWidth() );
+        this.config.add( Config.Key.HEIGHT, "" + WIN.getHeight() );
+        this.config.add( Config.Key.LEFT, "" + WIN.getLocation().x );
+        this.config.add( Config.Key.TOP, "" + WIN.getLocation().y );
+        
+        this.config.save();
+    }
+
+    
     private final Action actionAbout;
     private final Action actionQuit;
     private final Action actionHelp;
@@ -712,7 +768,8 @@ public class MainWindow extends Browser {
     private final Action actionViewOutput;
     private final Action actionOpenShell;
 
-    private final Logger log;
+    private final LogWriter logViewer;
+    private final Config config;
 
     
     private class KeyboardDispatcher implements KeyEventDispatcher {

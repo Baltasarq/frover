@@ -7,7 +7,6 @@ package com.devbaltasarq.frover.ui.mainwindow;
 import com.devbaltasarq.frover.ui.browser.BrowserView;
 import com.devbaltasarq.frover.ui.components.DirChoicePanel;
 import com.devbaltasarq.frover.ui.components.FileChoicePanel;
-import com.devbaltasarq.frover.ui.components.OutputPanel;
 
 import java.awt.Font;
 import java.awt.Color;
@@ -23,6 +22,7 @@ import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.net.URL;
 import java.awt.Image;
+import java.awt.TextArea;
 import java.awt.Toolkit;
 
 
@@ -72,7 +72,7 @@ public class MainWindowView extends BrowserView {
         PNL_MAIN.add( this.buildDirChoice() );
         PNL_MAIN.add( this.buildFileChoice() );
         
-        PNL_OUTPUT.add( this.buildOutput(), BorderLayout.SOUTH );
+        PNL_OUTPUT.add( this.buildLogViewer(), BorderLayout.SOUTH );
         PNL_OUTPUT.add( PNL_MAIN, BorderLayout.CENTER );
         
         PNL_TOOLBAR.add( PNL_OUTPUT, BorderLayout.CENTER );
@@ -101,10 +101,21 @@ public class MainWindowView extends BrowserView {
         }
     }
     
-    private Panel buildOutput()
+    private Panel buildLogViewer()
     {
-        this.pnlOutput = new OutputPanel( 5, 80, Color.WHITE, Color.BLACK );
-        return this.pnlOutput;
+        final var LY_TOOLBAR = new BorderLayout();
+        final var PANEL = new Panel( LY_TOOLBAR );
+        final var FONT = new Font( Font.MONOSPACED, Font.PLAIN, 12 );
+
+        this.logViewer = new TextArea();
+        this.logViewer.setFont( FONT );
+        this.logViewer.setBackground( Color.BLACK );
+        this.logViewer.setForeground( Color.WHITE );
+        this.logViewer.setColumns( 80 );
+        this.logViewer.setRows( 5 );
+        
+        PANEL.add( this.logViewer, BorderLayout.CENTER );
+        return PANEL;
     }
     
     private Panel buildToolbar()
@@ -311,9 +322,9 @@ public class MainWindowView extends BrowserView {
     }
     
     /** @return the text area that acts as output. */
-    public OutputPanel getOutput()
+    public TextArea getLogViewer()
     {
-        return this.pnlOutput;
+        return this.logViewer;
     }
     
     /** @return the button in the toolbar for help. */
@@ -370,7 +381,7 @@ public class MainWindowView extends BrowserView {
     private DirChoicePanel pnlChoiceDir;
     private Panel pnlToolbar;
     private TextField sbStatus;
-    private OutputPanel pnlOutput;
+    private TextArea logViewer;
     private Menu mFile;
     private Menu mEdit;
     private Menu mView;

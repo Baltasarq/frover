@@ -1,7 +1,7 @@
 // frover (c) 2025 Baltasar MIT License <baltasarq@gmail.com>
 
 
-package com.devbaltasarq.frover.ui.tools;
+package com.devbaltasarq.frover.ui;
 
 
 import java.util.List;
