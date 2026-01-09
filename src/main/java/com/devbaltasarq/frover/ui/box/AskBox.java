@@ -61,6 +61,7 @@ public class AskBox extends Dialog {
         
         this.btYes.addKeyListener( this.KEY_LISTENER ); 
         this.btNo.addKeyListener( this.KEY_LISTENER );
+        this.setLocationByPlatform( true );
     }
     
     /** Build the layout for this dialog. */
@@ -125,7 +126,7 @@ public class AskBox extends Dialog {
       */
     public boolean run()
     {
-        this.setLocationByPlatform( true );
+        this.setLocationRelativeTo( this.getOwner() );
         super.setVisible( true );
         this.dispose();
         

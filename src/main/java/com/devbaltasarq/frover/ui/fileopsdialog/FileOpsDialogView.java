@@ -41,6 +41,7 @@ public class FileOpsDialogView extends BrowserView {
         this.btCancel = new Button( "Cancel" );
         
         this.build();
+        this.getDialog().setLocationRelativeTo( owner );
     }
     
     private void build()

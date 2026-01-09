@@ -64,6 +64,8 @@ public class MessageBox extends Dialog {
                 MessageBox.this.doClose();
             }
         });
+        
+        this.setLocationByPlatform( true );
     }
     
     /** Build the layout for this dialog. */
@@ -107,7 +109,7 @@ public class MessageBox extends Dialog {
     /** Makes the dialog visible, blocking until "Ok" is clicked. */
     public void run()
     {
-        this.setLocationByPlatform( true );
+        this.setLocationRelativeTo( this.getOwner() );
         super.setVisible( true );
         this.dispose();
     }

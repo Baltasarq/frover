@@ -51,6 +51,8 @@ public class InputBox extends Dialog {
                 InputBox.this.doClose( false );
             }
         });
+        
+        this.setLocationByPlatform( true );
     }
     
     /** Build the layout for this dialog. */
@@ -142,7 +144,7 @@ public class InputBox extends Dialog {
     /** Makes the dialog visible, blocking until "Ok" is clicked. */
     public String run()
     {
-        this.setLocationByPlatform( true );
+        this.setLocationRelativeTo( this.getOwner() );
         super.setVisible( true );
         this.dispose();
         
