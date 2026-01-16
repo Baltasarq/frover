@@ -23,6 +23,8 @@ import com.google.gson.reflect.TypeToken;
   */
 public class Config {
     private static final Logger LOG = Logger.getLogger( Config.class.getSimpleName() );
+    private static final String RECORD_SEPARATOR = "\u001C\u001E";
+    private static final String LBL_FAV_HOME = "Home";
 
     public enum Key {
         APP_NAME,
@@ -33,7 +35,9 @@ public class Config {
         WIDTH,
         HEIGHT,
         TOP,
-        LEFT
+        LEFT,
+        FAV_NAMES,
+        FAV_DIRS,
     }
     
     private Config(String appName)
@@ -49,8 +53,9 @@ public class Config {
     /** Assigns all the default values. */
     private void init()
     {
-        this.configValues.put( Key.HOME_DIR,
-                                System.getProperty( "user.home" ) );
+        final var HOME_DIR = System.getProperty( "user.home" );
+
+        this.configValues.put( Key.HOME_DIR, HOME_DIR );
         this.configValues.put( Key.CONFIG_DIR,
                                   this.buildConfigDirPath() );
         this.configValues.put( Key.CONFIG_FILE_PATH,
@@ -59,6 +64,8 @@ public class Config {
         this.configValues.put( Key.TOP, "-1" );
         this.configValues.put( Key.WIDTH, "-1" );
         this.configValues.put( Key.HEIGHT, "-1" );
+        this.configValues.put( Key.FAV_NAMES, LBL_FAV_HOME );
+        this.configValues.put( Key.FAV_DIRS, HOME_DIR );
     }
     
     /** Builds the config directory path.
@@ -106,12 +113,42 @@ public class Config {
         return this.configValues.get( key );
     }
     
+    /** @return the associated list values, or null if it does not exist.
+      * @param key the key to ask for.
+      */
+    public String[] getList(Key key)
+    {
+        String value = this.configValues.get( key );
+        String[] toret = null;
+        
+        if ( value != null ) {
+            toret = value.split( RECORD_SEPARATOR );
+        }
+        
+        return toret;
+    }
+    
     /** Adds a new value to the configuration.
-      * @param key the key of the value.
+      * @param key the key for the value.
       * @param value the new value.
       */
     public void add(Key key, String value)
     {
+        this.configValues.put( key, value );
+    }
+    
+    /** Adds a new list of values to the configuration.
+      * @param key the key for the list of values.
+      * @param list the new list of values, as a String[].
+      */
+    public void addList(Key key, String[] list)
+    {
+        String value = "";
+        
+        if ( list != null ) {
+            value = String.join( RECORD_SEPARATOR, list );
+        }
+        
         this.configValues.put( key, value );
     }
     

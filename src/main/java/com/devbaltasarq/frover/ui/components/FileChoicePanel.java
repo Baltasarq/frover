@@ -29,7 +29,7 @@ public class FileChoicePanel extends Panel {
     public FileChoicePanel(Color fg, Color bg, Font font)
     {
         this.fileList = new PathList( fg, bg, font );
-        this.fileSelector = (p) -> {};
+        this.fileOpener = (p) -> {};
         
         this.build();
         this.buildListeners();
@@ -48,7 +48,8 @@ public class FileChoicePanel extends Panel {
     
     private void buildListeners()
     {
-        this.fileList.addActionListener( (evt) -> doSelectFile() );
+        this.fileList.addActionListener( (evt) -> doOpenFile() );
+        this.fileList.addItemListener( (evt) -> doSelectFile() );
     }
     
     private void doSelectFile()
@@ -57,6 +58,15 @@ public class FileChoicePanel extends Panel {
         
         if ( pos >= 0 ) {
             this.fileSelector.accept( this.fileList.getPathAt( pos ) );
+        }
+    }
+    
+    private void doOpenFile()
+    {
+        int pos = this.fileList.getSelectedIndex();
+        
+        if ( pos >= 0 ) {
+            this.fileOpener.accept( this.fileList.getPathAt( pos ) );
         }
     }
     
@@ -84,6 +94,20 @@ public class FileChoicePanel extends Panel {
     /** Changes the listener for the file selection.
       * @param doIt the new function to invoke when a file is selected.
       */
+    public void setOpenFileAction(Consumer<Path> doIt)
+    {
+        this.fileOpener = doIt;
+    }
+    
+    /** @return the action invoked when a file is selected. */
+    public Consumer<Path> getOpenFileAction()
+    {
+        return this.fileOpener;
+    }
+    
+    /** Changes the listener for the file selection.
+      * @param doIt the new function to invoke when a file is selected.
+      */
     public void setSelectFileAction(Consumer<Path> doIt)
     {
         this.fileSelector = doIt;
@@ -96,6 +120,7 @@ public class FileChoicePanel extends Panel {
     }
     
     
+    private Consumer<Path> fileOpener;
     private Consumer<Path> fileSelector;
     private final PathList fileList;
 }

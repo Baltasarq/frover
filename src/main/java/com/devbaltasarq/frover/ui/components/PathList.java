@@ -6,21 +6,14 @@ package com.devbaltasarq.frover.ui.components;
 
 import java.awt.Color;
 import java.awt.Font;
-import java.awt.List;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.nio.file.Path;
 
 
 /** A panel showing a list of files.
   * @author baltasarq
   */
-public class PathList extends List {
-    public static final Color FG = Color.WHITE;
-    public static final Color BG = Color.WHITE;
-    public static final Font FONT_MONO_16 = Font.decode( "monospaced-16" );
-    
+public class PathList extends IndependentPathList {
     /** Creates a new panel with a list of file/dir entries.
       * Foreground color is FG, background color is BG,
       * and font is MONO_FONT_16.
@@ -68,7 +61,8 @@ public class PathList extends List {
       * @param fn the string with the file name.
       * @return an path with an absolute path.
      */
-    protected Path pathFromDirAndEntryName(String fn)
+    @Override
+    protected Path pathFromEntryName(String fn)
     {
         return Path.of( this.dir.toString(), fn );
     }
@@ -76,46 +70,35 @@ public class PathList extends List {
     /** Adds a new path.
       * @param path the path to add to the end of the list.
       */
+    @Override
     public void add(Path path)
     {
         this.setDir( path );
-        this.add( path.getFileName().toString() );
+        super.add( path.getFileName() );
     }
     
     /** Inserts a new path in the list.
       * @param row the number of the row to insert the path into.
       * @param path the file to add to the end of the list.
       */
+    @Override
     public void insert(int row, Path path)
     {
         this.setDir( path );
-        this.add( path.getFileName().toString(), row );
-    }
-    
-    /** @return the number of paths in the list. */
-    public int count()
-    {
-        return this.getItemCount();
+        super.insert( row, path.getFileName() );
     }
     
     /** Remove a path at a given row.
       * @param row the number of the row for the file to remove.
       */
+    @Override
     public void removePathAt(int row)
     {
-        this.remove( row );
+        super.removePathAt( row );
         
         if ( this.getItemCount() == 0 ) {
             this.dir = null;
         }
-    }
-    
-    /** @return the path at a given pos in the list.
-      * @param row the position to retrieve the file from.
-      */
-    public Path getPathAt(int row)
-    {
-        return this.pathFromDirAndEntryName( this.getItem( row ));
     }
     
     /** Removes all the paths in the list. */
@@ -126,31 +109,10 @@ public class PathList extends List {
         super.removeAll();
     }
     
-    /** @return the complete list of paths in the list. */
-    public java.util.List<Path> getAllPaths()
-    {
-        final var STR_LIST = new ArrayList<String>( Arrays.asList( this.getItems() ) );
-        final var TORET = new ArrayList<Path>( STR_LIST.size() );
-        
-        for(String STR: STR_LIST) {
-            TORET.add(this.pathFromDirAndEntryName( STR ) );
-        }
-        
-        return TORET;
-    }
-    
     /** @return the CWD (current working directory). */
     public Path getCWD()
     {
         return this.dir;
-    }
-    
-    /** Adds a listener for the case in which a file is selected.
-      * @param action what to do...
-      */
-    public void addActionListener(Runnable action)
-    {
-        this.addActionListener( (evt) -> action.run() );
     }
     
     private Path dir;

@@ -5,6 +5,7 @@ package com.devbaltasarq.frover.ui;
 
 
 import java.nio.file.Path;
+import java.nio.file.Files;
 import java.io.IOException;
 import java.util.List;
 import java.util.logging.Logger;
@@ -41,13 +42,15 @@ import com.devbaltasarq.frover.ui.mainwindow.MainWindowView;
   */
 public class MainWindow extends Browser {
     private static final Logger LOG = Logger.getLogger( MainWindow.class.getName() );
-    private final static List<String> WIN_SHELL = List.of(
+    private static final String MSG_STATUS_SHOW_HIDDEN = "Showing hidden files";
+    private static final String MSG_STATUS_HIDE_HIDDEN = "Hiding hidden files";
+    private static final List<String> WIN_SHELL = List.of(
                                 "cmd",
                                 "/c",
                                 "start",
                                 "cmd.exe" );
 
-    private final static List<String> NIX_SHELL =  List.of(
+    private static final List<String> NIX_SHELL =  List.of(
                                 "/usr/bin/xterm",
                                 "-fa", "Monospace",
                                 "-fs", "12" );
@@ -128,10 +131,22 @@ public class MainWindow extends Browser {
     {
         this.buildActions();
         
-        this.getView().getDirChoicePanel().setCopyCWDAction(
-                                                (t) -> this.doCopyCWD( t ) );
-        this.getView().getFileChoicePanel().setSelectFileAction(
-                                                (p) -> this.doView( p ) );
+        this.getView().
+                getDirChoicePanel().setCopyCWDAction(
+                                        (t) -> this.doCopyCWD( t ) );
+        this.getView().
+                getFileChoicePanel().setSelectFileAction(
+                                        (p) -> this.setStatus(
+                                                p.getFileName().toString() ) );
+        this.getView().
+                getFileChoicePanel().setOpenFileAction(
+                                        (p) -> this.doView( p ) );
+        this.getView().
+                getVisitedDirChoicePanel().setChangeDirAction(
+                                        (p) -> this.doCd( p ));
+        this.getView().
+                getVisitedDirChoicePanel().setNewFavAction(
+                                        () -> this.doNewFavDir() );
         
         this.getView().getFrame().addWindowListener( new WindowAdapter() {
             @Override
@@ -636,6 +651,8 @@ public class MainWindow extends Browser {
         
         if ( toret ) {
             LOG.info( "cd `" + PATH + "`" );
+            
+            this.getView().getVisitedDirChoicePanel().addDirToHistory( PATH );
         } else {
             LOG.severe( "cd `" + PATH + "`: cannot change to" );
         }
@@ -673,6 +690,29 @@ public class MainWindow extends Browser {
         this.getView().getLogViewer().revalidate();
     }
     
+    /** Adds a new favourite dir to the visited panel. */
+    public void doNewFavDir()
+    {
+        final var DIR = this.getDirBrowser().getDirectory();
+        final var DLG_INPUT = new InputBox(
+                        this.getView().getWindow(),
+                        AppInfo.NAME,
+                        "New favourite directory",
+                        DIR.getFileName() );
+        
+        String name = DLG_INPUT.run();
+        
+        if ( !name.isBlank() ) {
+            this.getView().getVisitedDirChoicePanel().getFavList().add( name, DIR.getPath() );
+            LOG.info( String.format(
+                                    "storing favourite dir with name: '%s' -> '%s'",
+                                    name,
+                                    DIR ));
+        } else {
+            LOG.info( "adding favourite dir to panel: " + DIR );
+        }
+    }
+    
     /** Open in shell. */
     public void doOpenInShell()
     {
@@ -702,13 +742,29 @@ public class MainWindow extends Browser {
     
     private void setStatus(String msg)
     {
+        final boolean SHOW_HIDDEN = this.cfg.isShowingHiddenFiles().get();
+        final Entry ENTRY = this.getChosenEntry();
         final var STATUS = this.getView().getStatusBar();
         final Size FREE = new Size( this.dirBrowser.getDriveFreeSize() );
         final Size TOTAL = new Size( this.dirBrowser.getDriveSize() );
+        String size = "N/A";
+        
+        if ( ENTRY instanceof File f) {
+            try {
+                size = new Size( Files.size( f.getPath() ) ).toString();
+            } catch(IOException | SecurityException exc)
+            {
+                size = "[ERR]";
+            }
+        }
+        
         final String TXT = String.format(
-                                    "Free: %s / %s | %s",
+                                    "Free: %s / %s | %s | %s | %s",
                                     FREE.toString(),
                                     TOTAL.toString(),
+                                    SHOW_HIDDEN ? MSG_STATUS_SHOW_HIDDEN
+                                            : MSG_STATUS_HIDE_HIDDEN,
+                                    "Size: " + size,
                                     msg );
         
         STATUS.setText( TXT );
@@ -717,11 +773,16 @@ public class MainWindow extends Browser {
     /** Applies the configuration to the app. */
     private void applyConfig()
     {
-        final var WIN = ( (MainWindowView) this.view ).getWindow();
+        final var MAIN_VIEW = ( (MainWindowView) this.view );
+        final var WIN = MAIN_VIEW.getWindow();
+        final var FAV_DIR_LIST = MAIN_VIEW.getVisitedDirChoicePanel().getFavList();
+        
         String strWidth = this.config.get( Config.Key.WIDTH );
         String strHeight = this.config.get( Config.Key.HEIGHT );
         String strLeft = this.config.get( Config.Key.LEFT );
         String strTop = this.config.get( Config.Key.TOP );
+        final String[] FAV_NAMES = this.config.getList( Config.Key.FAV_NAMES );
+        final String[] FAV_DIRS = this.config.getList( Config.Key.FAV_DIRS );
         
         if ( !strWidth.equals( "-1" )
           && !strHeight.equals( "-1" ) )
@@ -738,18 +799,40 @@ public class MainWindow extends Browser {
                 Integer.parseInt( strLeft ),
                 Integer.parseInt( strTop ));
         }
+        
+        // Adds the favourites fav dirs
+        if ( FAV_NAMES != null
+          && FAV_DIRS != null )
+        {
+            int numFavs = FAV_NAMES.length;
+
+            for(int i = 0; i < numFavs; ++i) {
+                try {
+                    FAV_DIR_LIST.add( FAV_NAMES[ i ], Path.of( FAV_DIRS[ i ] ) );
+                } catch(IndexOutOfBoundsException exc) {
+                    LOG.severe( "retrieving list of favs at: " + i );
+                }
+            }
+        }
     }
     
     /** Saves the settings to the config. */
     private void saveConfig()
     {
         final var WIN = ( (MainWindowView) this.view ).getWindow();
+        final var FAV_DIR_LIST = this.getView().getVisitedDirChoicePanel().getFavList();
+        final List<String> FAV_NAMES = FAV_DIR_LIST.getNames();
+        final List<Path> FAV_DIRS = FAV_DIR_LIST.getPaths();
+        final List<String> STR_FAV_DIRS = FAV_DIRS.stream().map( p -> p.toString() ).toList();
         
         this.config.add( Config.Key.WIDTH, "" + WIN.getWidth() );
         this.config.add( Config.Key.HEIGHT, "" + WIN.getHeight() );
         this.config.add( Config.Key.LEFT, "" + WIN.getLocation().x );
         this.config.add( Config.Key.TOP, "" + WIN.getLocation().y );
-        
+        this.config.addList(Config.Key.FAV_NAMES,
+                                FAV_NAMES.toArray( String[]::new ) );
+        this.config.addList( Config.Key.FAV_DIRS,
+                                STR_FAV_DIRS.toArray( String[]::new ) );
         this.config.save();
     }
 

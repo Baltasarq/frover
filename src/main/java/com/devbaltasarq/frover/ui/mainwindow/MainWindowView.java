@@ -6,6 +6,7 @@ package com.devbaltasarq.frover.ui.mainwindow;
 
 import com.devbaltasarq.frover.ui.browser.BrowserView;
 import com.devbaltasarq.frover.ui.components.DirChoicePanel;
+import com.devbaltasarq.frover.ui.components.VisitedDirChoicePanel;
 import com.devbaltasarq.frover.ui.components.FileChoicePanel;
 
 import java.awt.Font;
@@ -74,6 +75,7 @@ public class MainWindowView extends BrowserView {
         
         PNL_OUTPUT.add( this.buildLogViewer(), BorderLayout.SOUTH );
         PNL_OUTPUT.add( PNL_MAIN, BorderLayout.CENTER );
+        PNL_OUTPUT.add( this.buildFavDirectoryChoice(), BorderLayout.WEST );
         
         PNL_TOOLBAR.add( PNL_OUTPUT, BorderLayout.CENTER );
         PNL_TOOLBAR.add( this.buildToolbar(), BorderLayout.SOUTH );
@@ -160,6 +162,15 @@ public class MainWindowView extends BrowserView {
         this.pnlToolbar.add( this.btView );
         
         return this.pnlToolbar;
+    }
+    
+    private Panel buildFavDirectoryChoice()
+    {
+        this.pnlChoiceFavDir = new VisitedDirChoicePanel(
+                                    Color.WHITE,
+                                    Color.BLACK,
+                                    VisitedDirChoicePanel.FONT_MONO_16 );
+        return this.pnlChoiceFavDir;
     }
     
     private Panel buildFileChoice()
@@ -363,6 +374,12 @@ public class MainWindowView extends BrowserView {
         return this.btDelete;
     }
     
+    /** @return the widget for the list of visited directories. */
+    public VisitedDirChoicePanel getVisitedDirChoicePanel()
+    {
+        return this.pnlChoiceFavDir;
+    }
+    
     /** @return the widget for the list of directories. */
     @Override
     public DirChoicePanel getDirChoicePanel()
@@ -379,6 +396,7 @@ public class MainWindowView extends BrowserView {
         
     private FileChoicePanel pnlChoiceFile;
     private DirChoicePanel pnlChoiceDir;
+    private VisitedDirChoicePanel pnlChoiceFavDir;
     private Panel pnlToolbar;
     private TextField sbStatus;
     private TextArea logViewer;
