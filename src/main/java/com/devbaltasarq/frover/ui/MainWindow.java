@@ -26,6 +26,7 @@ import com.devbaltasarq.frover.core.Config;
 import com.devbaltasarq.frover.core.LogWriter;
 import com.devbaltasarq.frover.core.Size;
 import com.devbaltasarq.frover.core.Cfg;
+import com.devbaltasarq.frover.core.CmdExecutor;
 import com.devbaltasarq.frover.core.DirBrowser;
 import com.devbaltasarq.frover.core.Entry;
 import com.devbaltasarq.frover.core.entries.Directory;
@@ -33,8 +34,15 @@ import com.devbaltasarq.frover.core.entries.File;
 import com.devbaltasarq.frover.ui.box.MessageBox;
 import com.devbaltasarq.frover.ui.box.InputBox;
 import com.devbaltasarq.frover.ui.box.AskBox;
+import com.devbaltasarq.frover.ui.components.NamedPathList;
 import com.devbaltasarq.frover.ui.components.PathList;
 import com.devbaltasarq.frover.ui.mainwindow.MainWindowView;
+import java.awt.TextField;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
+import java.awt.event.KeyListener;
+import java.awt.event.TextEvent;
+import java.awt.event.TextListener;
 
 
 /** Control for MainWindow.
@@ -147,6 +155,44 @@ public class MainWindow extends Browser {
         this.getView().
                 getVisitedDirChoicePanel().setNewFavAction(
                                         () -> this.doNewFavDir() );
+        this.getView().
+                getVisitedDirChoicePanel().setRemoveFavAction(
+                                        () -> this.doRemoveFavDir() );
+        
+        this.getView().getBtExe().addActionListener( (evt) -> this.doCmd() );
+        
+        this.getView().getEdCmd().addFocusListener( new FocusListener() {
+            @Override
+            public void focusLost(FocusEvent evt)
+            {
+                MainWindow.this.syncToCurrentDir();
+            }
+            
+            @Override
+            public void focusGained(FocusEvent evt)
+            {
+            }
+        });
+        
+        this.getView().getEdCmd().addKeyListener( new KeyListener() {
+            @Override
+            public void keyReleased(KeyEvent evt)
+            {
+                if ( evt.getKeyCode() == KeyEvent.VK_ENTER ) {
+                    MainWindow.this.doCmd();
+                }
+            }
+            
+            @Override
+            public void keyPressed(KeyEvent evt)
+            {                
+            }
+            
+            @Override
+            public void keyTyped(KeyEvent evt)
+            {   
+            }
+        });
         
         this.getView().getFrame().addWindowListener( new WindowAdapter() {
             @Override
@@ -616,7 +662,7 @@ public class MainWindow extends Browser {
         try {
             LOG.info( "view `" + FILE.toString() + "`" );
             DESKTOP.open( FILE.toFile() );
-        } catch(IOException exc)
+        } catch(IllegalArgumentException | IOException exc)
         {
             status = "problem opening: `" + FILE.toString() + "`: " + exc.toString();
             LOG.severe( status );
@@ -685,12 +731,36 @@ public class MainWindow extends Browser {
     {
         boolean val = !this.cfg.isOutputVisible().get();
         
-        this.cfg.setViewOutput( Cfg.OutputPanelVisibility.from( val ) );
-        this.getView().getLogViewer().setVisible( val );
-        this.getView().getLogViewer().revalidate();
+        this.showOutput( val );
     }
     
-    /** Adds a new favourite dir to the visited panel. */
+    /** Show/hide the output.
+      * @param visible true if the output is to be visible, false otherwise.
+      */
+    private void showOutput(boolean visible)
+    {
+        this.getView().getLogViewer().setVisible( visible );
+        this.getView().getLogViewer().revalidate();
+        this.cfg.setViewOutput( Cfg.OutputPanelVisibility.from( visible ) );
+    }
+    
+    /** Execute a command. */
+    public void doCmd()
+    {
+        final TextField ED_CMD = this.getView().getEdCmd();
+        final var EXE_ENGINE = new CmdExecutor(
+                                       this.dirBrowser.getPath(),
+                                       ED_CMD.getText(),
+                                       this.logViewer.getWriter() );
+        
+        new Thread(() -> {
+            EXE_ENGINE.run();
+        }).start();
+        ED_CMD.setText( "" );
+        this.showOutput( true );
+    }
+    
+    /** Adds a new favourite dir to the favs panel. */
     public void doNewFavDir()
     {
         final var DIR = this.getDirBrowser().getDirectory();
@@ -703,7 +773,9 @@ public class MainWindow extends Browser {
         String name = DLG_INPUT.run();
         
         if ( !name.isBlank() ) {
-            this.getView().getVisitedDirChoicePanel().getFavList().add( name, DIR.getPath() );
+            final var NAMED_PATH =
+                        new NamedPathList.NamedPath( name, DIR.getPath() );
+            this.getView().getVisitedDirChoicePanel().getFavList().add( NAMED_PATH );
             LOG.info( String.format(
                                     "storing favourite dir with name: '%s' -> '%s'",
                                     name,
@@ -711,6 +783,12 @@ public class MainWindow extends Browser {
         } else {
             LOG.info( "adding favourite dir to panel: " + DIR );
         }
+    }
+    
+    /** Removes a favourite dir on the favs panel. */
+    public void doRemoveFavDir()
+    {
+        this.getView().getVisitedDirChoicePanel().removeFavDir();
     }
     
     /** Open in shell. */
@@ -808,7 +886,9 @@ public class MainWindow extends Browser {
 
             for(int i = 0; i < numFavs; ++i) {
                 try {
-                    FAV_DIR_LIST.add( FAV_NAMES[ i ], Path.of( FAV_DIRS[ i ] ) );
+                    FAV_DIR_LIST.add( new NamedPathList.NamedPath(
+                                                FAV_NAMES[ i ],
+                                            Path.of( FAV_DIRS[ i ] ) ) );
                 } catch(IndexOutOfBoundsException exc) {
                     LOG.severe( "retrieving list of favs at: " + i );
                 }
@@ -821,22 +901,25 @@ public class MainWindow extends Browser {
     {
         final var WIN = ( (MainWindowView) this.view ).getWindow();
         final var FAV_DIR_LIST = this.getView().getVisitedDirChoicePanel().getFavList();
-        final List<String> FAV_NAMES = FAV_DIR_LIST.getNames();
-        final List<Path> FAV_DIRS = FAV_DIR_LIST.getPaths();
-        final List<String> STR_FAV_DIRS = FAV_DIRS.stream().map( p -> p.toString() ).toList();
+        final List<NamedPathList.NamedPath> FAV_PAIRS = FAV_DIR_LIST.getAll();
+        final List<String> STR_FAV_NAMES = FAV_PAIRS.stream()
+                                                .map( p -> p.getName() ).toList();
+        final List<String> STR_FAV_DIRS = FAV_PAIRS.stream()
+                                                .map(
+                                                  p -> p.getPath().toString() )
+                                                .toList();
         
         this.config.add( Config.Key.WIDTH, "" + WIN.getWidth() );
         this.config.add( Config.Key.HEIGHT, "" + WIN.getHeight() );
         this.config.add( Config.Key.LEFT, "" + WIN.getLocation().x );
         this.config.add( Config.Key.TOP, "" + WIN.getLocation().y );
         this.config.addList(Config.Key.FAV_NAMES,
-                                FAV_NAMES.toArray( String[]::new ) );
+                                STR_FAV_NAMES.toArray( String[]::new ) );
         this.config.addList( Config.Key.FAV_DIRS,
                                 STR_FAV_DIRS.toArray( String[]::new ) );
         this.config.save();
     }
-
-    
+     
     private final Action actionAbout;
     private final Action actionQuit;
     private final Action actionHelp;
@@ -853,7 +936,6 @@ public class MainWindow extends Browser {
 
     private final LogWriter logViewer;
     private final Config config;
-
     
     private class KeyboardDispatcher implements KeyEventDispatcher {
         @Override

@@ -9,14 +9,20 @@ import java.awt.Font;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Map;
+import java.util.HashMap;
 
 
 /** A path list in which each directory is identified by a name.
   * @author baltasarq
   */
-public class NamedPathList extends IndependentPathList {
-    /** Creates a new panel with a list of file/dir entries.
+public class NamedPathList extends java.awt.List implements PathChoice {
+    public static final Color FG = Color.WHITE;
+    public static final Color BG = Color.GRAY;
+    public static final Font FONT_MONO_16 = Font.decode( "monospaced-16" );
+    
+    /** Creates a new panel with a list of dir entries,
+      * in which each entry is identified by a name.
       * Foreground color is FG, background color is BG,
       * and font is MONO_FONT_16.
       */
@@ -30,40 +36,71 @@ public class NamedPathList extends IndependentPathList {
         this.setForeground( fg );
         this.setBackground( bg );
         this.setFont( font );
-        this.paths = new ArrayList<>();
+        this.namesToPaths = new HashMap<>();
     }
     
     @Override
-    public void add(Path path)
+    public void add(String path)
     {
-        throw new Error( "plain NamedPathList::add(p) plain called" );
+        final Path PATH = Path.of( path );
+        final String NAME = PATH.getFileName().toString();
+        
+        this.add( new NamedPath( NAME, PATH ) );
     }
     
     @Override
-    public void insert(int row, Path path)
+    public void add(String path, int row)
     {
-        throw new Error( "plain NamedPathList::insert(i, p) plain called" );
+        final Path PATH = Path.of( path );
+        final String NAME = PATH.getFileName().toString();
+        
+        this.add( new NamedPath( NAME, PATH ) );
     }
     
-    /** Adds a new path.
-      * @param name the name for this path.
-      * @param path the path to add to the end of the list.
-      */
-    public void add(String name, Path path)
+    @Override
+    public void remove(int row)
     {
-        super.add( formatName( name ) );
-        this.paths.add( path );
+        this.removePathAt( row );
     }
     
-    /** Inserts a new path in the list.
-      * @param row the number of the row to insert the path into.
-      * @param name the name for this path.
-      * @param path the file to add to the end of the list.
-      */
-    public void insert(int row, String name, Path path)
+    /** @return the number of items in the list. */
+    public int count()
     {
-        super.add( formatName( name ), row );
-        this.paths.add( row, path );
+        return super.getItemCount();
+    }
+    
+    /** @return the current list of names, sorted. */
+    private List<String> sortNames()
+    {
+        final List<String> TORET = new ArrayList<>( this.namesToPaths.keySet() );
+        
+        TORET.sort(
+                (s1, s2 ) -> s1.toLowerCase().compareTo(
+                                        s2.toLowerCase() ) );
+        
+        return TORET;
+    }
+    
+    /** Updates the list of items visible to the user,
+      * because the list names has changed.
+      */
+    private void updateList()
+    {
+        final List<String> SORTED_NAMES = this.sortNames();
+        
+        super.removeAll();
+        for(final String NAME: SORTED_NAMES) {
+            super.add( NAME );
+        }        
+    }
+    
+    /** Adds a new name/path pair.
+      * @param NAME_PATH the NamedPath object holding a name and its path.
+      */
+    public void add(final NamedPath NAME_PATH)
+    {
+        this.namesToPaths.put( NAME_PATH.getName(), NAME_PATH.getPath() );
+        this.updateList();
     }
     
     /** Remove a path at a given row.
@@ -71,65 +108,83 @@ public class NamedPathList extends IndependentPathList {
       */
     public void removePathAt(int row)
     {
+        final String NAME = this.getItem( row );
+        
         super.remove( row );
-        this.paths.remove( row );
+        this.namesToPaths.remove( NAME );
     }
     
-    /** Returns a file entry with a path, given a name.
-      * @param name the string with the id of the path.
-      * @return a path object.
-     */
-    @Override
-    protected Path pathFromEntryName(String name)
+    /** Return the path at the given row.
+      * @param row the row index of the item.
+      * @return the corresponding path.
+      */
+    public Path getPathAt(int row)
     {
-        Path toret = null;
+        assert row > 0 && row < this.count():  "invalid row: " + row;
         
-        name = formatName( name );
+        final String NAME = super.getItem( row );
+        final Path TORET = this.namesToPaths.get( NAME );
         
-        for(int i = 0; i < this.paths.size(); ++i) {
-            if ( name.equals( this.getItem( i ) ) ) {
-                toret = this.paths.get( i );
-                break;
-            }
+        if ( TORET == null ) {
+            throw new Error( "NamedPathList: path not found for: " + NAME );
         }
         
-        if ( toret == null ) {
-            throw new Error( "unable to find path for name:" + name );
-        }
-        
-        return toret;
+        return TORET;
     }
-    
+
     /** Removes all the paths in the list. */
     @Override
     public void removeAll()
     {
         super.removeAll();
-        this.paths.clear();
+        this.namesToPaths.clear();
     }
     
-    /** @return the list of strings for the names. */
-    public List<String> getNames()
+    public List<NamedPath> getAll()
     {
-        return new ArrayList<>( Arrays.asList( this.getItems() ));
-    }
-    
-    /** @return the list of Path objects for the paths. */
-    public List<Path> getPaths()
-    {
-        return new ArrayList<>( this.paths );
-    }
-    
-    /** @return a correctly formatted name.
-      * @param name a name for a path.
-      */
-    private static String formatName(String name)
-    {
-        name = name.trim();
+        final var TORET = new ArrayList<NamedPath>( this.count() );
         
-        return Character.toUpperCase( name.charAt( 0 ) )
-                + name.substring( 1 ).toLowerCase();
+        for(String name: this.namesToPaths.keySet()) {
+            TORET.add( new NamedPath( name, this.namesToPaths.get( name ) ) );
+        }
+        
+        return TORET;
     }
     
-    private List<Path> paths;
+    private Map<String, Path> namesToPaths;
+    
+    /** Represents a pair name/path. */
+    public static class NamedPath {
+        public NamedPath(String name, Path path)
+        {
+            this.name = formatName( name );
+            this.path = path;
+        }
+        
+        /** @return the name of the pair. */
+        public String getName()
+        {
+            return this.name;
+        }
+        
+        /** @return the path of the pair. */
+        public Path getPath()
+        {
+            return this.path;
+        }
+        
+        /** @return a correctly formatted name.
+          * @param name a name for a path.
+          */
+        private static String formatName(String name)
+        {
+          name = name.trim();
+
+          return Character.toUpperCase( name.charAt( 0 ) )
+                  + name.substring( 1 ).toLowerCase();
+        }
+        
+        final private String name;
+        final private Path path;
+    }
 }

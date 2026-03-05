@@ -33,6 +33,7 @@ public class FileChoicePanel extends Panel {
         
         this.build();
         this.buildListeners();
+        this.lastSelectedIndex = 0;
     }
     
     private void build()
@@ -58,6 +59,8 @@ public class FileChoicePanel extends Panel {
         
         if ( pos >= 0 ) {
             this.fileSelector.accept( this.fileList.getPathAt( pos ) );
+            this.lastSelectedIndex = pos;
+            System.out.println( "File position selected: " + this.lastSelectedIndex );
         }
     }
     
@@ -82,6 +85,13 @@ public class FileChoicePanel extends Panel {
         FILE_LIST.setCWD( DIR );
         for(Path path: FILES) {
             FILE_LIST.add( path );
+        }
+        
+        if ( this.lastSelectedIndex >= 0
+          && this.lastSelectedIndex < FILE_LIST.count() )
+        {
+            FILE_LIST.select( this.lastSelectedIndex );
+            FILE_LIST.makeVisible( this.lastSelectedIndex );
         }
     }
     
@@ -119,7 +129,15 @@ public class FileChoicePanel extends Panel {
         return this.fileSelector;
     }
     
+    /** Sets the selected entry in the list, by the given index.
+      * @param index the entry to select.
+      */
+    public void setSelectedIndex(int index)
+    {
+        this.fileList.select( index );
+    }
     
+    private int lastSelectedIndex;
     private Consumer<Path> fileOpener;
     private Consumer<Path> fileSelector;
     private final PathList fileList;

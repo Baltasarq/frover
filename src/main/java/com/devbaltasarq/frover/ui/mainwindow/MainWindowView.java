@@ -9,6 +9,7 @@ import com.devbaltasarq.frover.ui.components.DirChoicePanel;
 import com.devbaltasarq.frover.ui.components.VisitedDirChoicePanel;
 import com.devbaltasarq.frover.ui.components.FileChoicePanel;
 
+import java.net.URL;
 import java.awt.Font;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -21,7 +22,7 @@ import java.awt.MenuBar;
 import java.awt.MenuItem;
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
-import java.net.URL;
+import java.awt.Label;
 import java.awt.Image;
 import java.awt.TextArea;
 import java.awt.Toolkit;
@@ -56,8 +57,10 @@ public class MainWindowView extends BrowserView {
         final var LYB = (BorderLayout) this.getWindow().getLayout();
         final var LY_TOOLBAR = new BorderLayout();
         final var LY_OUTPUT = new BorderLayout();
+        final var LY_CMDBAR = new BorderLayout();
         final var PNL_OUTPUT = new Panel( LY_TOOLBAR );
         final var PNL_TOOLBAR = new Panel( LY_OUTPUT );
+        final var PNL_CMDBAR = new Panel( LY_CMDBAR );
         final var PNL_MAIN = new Panel( new GridLayout( 1, 2 ) );
         
         this.buildIcons();
@@ -69,19 +72,24 @@ public class MainWindowView extends BrowserView {
         LY_TOOLBAR.setVgap( 5 );
         LY_OUTPUT.setHgap( 5 );
         LY_OUTPUT.setVgap( 5 );
+        LY_CMDBAR.setHgap( 5 );
+        LY_CMDBAR.setVgap( 5 );
         
         PNL_MAIN.add( this.buildDirChoice() );
         PNL_MAIN.add( this.buildFileChoice() );
         
-        PNL_OUTPUT.add( this.buildLogViewer(), BorderLayout.SOUTH );
+        PNL_OUTPUT.add( this.buildLogViewer(), BorderLayout.PAGE_END );
         PNL_OUTPUT.add( PNL_MAIN, BorderLayout.CENTER );
-        PNL_OUTPUT.add( this.buildFavDirectoryChoice(), BorderLayout.WEST );
+        PNL_OUTPUT.add( this.buildFavDirectoryChoice(), BorderLayout.LINE_START );
+                
+        PNL_CMDBAR.add( PNL_OUTPUT, BorderLayout.CENTER );
+        PNL_CMDBAR.add( this.buildCmdBar(), BorderLayout.PAGE_END );
         
-        PNL_TOOLBAR.add( PNL_OUTPUT, BorderLayout.CENTER );
-        PNL_TOOLBAR.add( this.buildToolbar(), BorderLayout.SOUTH );
+        PNL_TOOLBAR.add( PNL_CMDBAR, BorderLayout.CENTER );
+        PNL_TOOLBAR.add( this.buildToolbar(), BorderLayout.PAGE_END );        
         
         this.getWindow().add( PNL_TOOLBAR, BorderLayout.CENTER );
-        this.getWindow().add( this.buildStatusBar(), BorderLayout.SOUTH );
+        this.getWindow().add( this.buildStatusBar(), BorderLayout.PAGE_END );
         this.getWindow().setIconImage( this.iconApp );
         this.getWindow().pack();
     }
@@ -110,6 +118,7 @@ public class MainWindowView extends BrowserView {
         final var FONT = new Font( Font.MONOSPACED, Font.PLAIN, 12 );
 
         this.logViewer = new TextArea();
+        this.logViewer.setEditable( false );
         this.logViewer.setFont( FONT );
         this.logViewer.setBackground( Color.BLACK );
         this.logViewer.setForeground( Color.WHITE );
@@ -155,6 +164,7 @@ public class MainWindowView extends BrowserView {
         };
 
         this.pnlToolbar = new Panel( new GridLayout( 1, BUTTONS.length ) );
+        this.pnlToolbar.setFocusable( false );
         this.pnlToolbar.add( this.btHelp );
         this.pnlToolbar.add( this.btRename );
         this.pnlToolbar.add( this.btCopy );
@@ -234,10 +244,37 @@ public class MainWindowView extends BrowserView {
         return this.mbMainMenu;
     }
     
+    private Panel buildCmdBar()
+    {
+        final var FONT = new Font( Font.MONOSPACED, Font.PLAIN, 14 );
+        final var FONT_LBL = new Font( Font.MONOSPACED, Font.BOLD, 18 );
+        final var LY_CMD = new BorderLayout();
+        final var PNL_CMD_BAR = new Panel( LY_CMD );
+        final var LBL_PROMPT = new Label( ">" );
+        
+        LBL_PROMPT.setFont( FONT_LBL );
+        LY_CMD.setHgap( 5 );
+        LY_CMD.setVgap( 5 );
+        
+        this.edCmd = new TextField();
+        this.edCmd.setBackground(Color.BLACK );
+        this.edCmd.setForeground( Color.WHITE );
+        this.edCmd.setFont( FONT );
+        
+        this.btExe = new Button( "DoIt" );
+        
+        PNL_CMD_BAR.add( LBL_PROMPT, BorderLayout.LINE_START );
+        PNL_CMD_BAR.add( this.edCmd, BorderLayout.CENTER );
+        PNL_CMD_BAR.add( this.btExe, BorderLayout.LINE_END );
+        
+        return PNL_CMD_BAR;
+    }
+    
     private TextField buildStatusBar()
     {
         this.sbStatus = new TextField();
         this.sbStatus.setEditable( false );
+        this.sbStatus.setFocusable( false );
         
         return this.sbStatus;
     }
@@ -374,6 +411,18 @@ public class MainWindowView extends BrowserView {
         return this.btDelete;
     }
     
+    /** @return the text field for a command. */
+    public TextField getEdCmd()
+    {
+        return this.edCmd;
+    }
+    
+    /** @return the button for triggering a command. */
+    public Button getBtExe()
+    {
+        return this.btExe;
+    }
+    
     /** @return the widget for the list of visited directories. */
     public VisitedDirChoicePanel getVisitedDirChoicePanel()
     {
@@ -398,6 +447,7 @@ public class MainWindowView extends BrowserView {
     private DirChoicePanel pnlChoiceDir;
     private VisitedDirChoicePanel pnlChoiceFavDir;
     private Panel pnlToolbar;
+    private TextField edCmd;
     private TextField sbStatus;
     private TextArea logViewer;
     private Menu mFile;
@@ -424,6 +474,7 @@ public class MainWindowView extends BrowserView {
     private Button btCopy;
     private Button btDelete;
     private Button btHelp;
+    private Button btExe;
     private Image iconApp;
     private Image iconDirUp;
 }

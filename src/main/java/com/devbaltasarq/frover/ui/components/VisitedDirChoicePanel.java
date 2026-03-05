@@ -32,8 +32,9 @@ public class VisitedDirChoicePanel extends Panel {
     public VisitedDirChoicePanel(Color fg, Color bg, Font font)
     {
         this.btNew = new Button( "+" );
+        this.btRemove = new Button( "-" );
         this.favDirList = new NamedPathList( fg, bg, font );
-        this.histDirList = new NamedPathList( fg, bg, font );
+        this.histDirList = new ShortenedDirList( fg, bg, font );
         this.dirChanger = (p) -> {};
         this.btNewClicker = () -> {};
         
@@ -44,40 +45,53 @@ public class VisitedDirChoicePanel extends Panel {
                             (evt) -> this.doDirSelected( this.histDirList ) );
         this.btNew.addActionListener(
                             (evt) -> this.doNewFavDir() );
+        this.btRemove.addActionListener(
+                            (evt) -> this.doRemoveFavDir() );
     }
     
     private void build()
     {
         final var LYB = new BorderLayout();
         final var LYG = new GridLayout( 2, 1 );
+        final var LYP = new GridLayout( 1, 2 );
         final var PANEL_MAIN = new Panel( LYB );
         final var PANEL_GRID = new Panel( LYG );
+        final var PANEL_BUTTONS = new Panel( LYP );
         
         LYB.setHgap( 5 );
         LYB.setVgap( 5 );
         LYG.setHgap( 5 );
         LYG.setVgap( 5 );
+        LYP.setHgap( 10 );
+        LYP.setVgap( 10 );
+        
+        PANEL_BUTTONS.add( this.btNew );
+        PANEL_BUTTONS.add( this.btRemove );
         
         PANEL_GRID.add( this.favDirList );
         PANEL_GRID.add( this.histDirList );
-        PANEL_MAIN.add( this.btNew, BorderLayout.NORTH );
+        PANEL_MAIN.add( PANEL_BUTTONS, BorderLayout.NORTH );
         PANEL_MAIN.add( PANEL_GRID, BorderLayout.CENTER );
         this.setLayout( new BorderLayout() );
         this.add( PANEL_MAIN, BorderLayout.CENTER );
     }
     
-    /** Add a new directory to the history panel. */
+    /** Add a new directory to the history panel. 
+      * @param path the new Path to add.
+      */
     public void addDirToHistory(Path path)
     {
-        final int LIMIT = 14;
-        String name = path.toString();
-        int nameLen = name.length();
+        this.getHistList().insert( 0, path );
+    }
+    
+    /** Removes a given favourite directory. */
+    public void removeFavDir()
+    {
+        int row = this.getFavList().getSelectedIndex();
         
-        if ( nameLen > LIMIT ) {
-            name = "\u2026" + name.substring( nameLen - LIMIT );
+        if ( row >= 0 ) {
+            this.getFavList().removePathAt( row );
         }
-        
-        this.getHistList().insert( 0, name, path );
     }
     
     /** Add a new directory to the panel. **/
@@ -86,8 +100,14 @@ public class VisitedDirChoicePanel extends Panel {
         this.btNewClicker.run();
     }
     
+    /** Remove a directory on the panel. **/
+    private void doRemoveFavDir()
+    {
+        this.btRemoveClicker.run();
+    }
+    
     /** Change directory from the dir list. */
-    private void doDirSelected(IndependentPathList list)
+    private void doDirSelected(PathChoice list)
     {
         int dirPos = list.getSelectedIndex();
         
@@ -124,6 +144,20 @@ public class VisitedDirChoicePanel extends Panel {
         return this.btNewClicker;
     }
     
+    /** Changes the listener for the remove fav button.
+      * @param doIt the new function to invoke.
+      */
+    public void setRemoveFavAction(Runnable doIt)
+    {
+        this.btRemoveClicker = doIt;
+    }
+    
+    /** @return the action invoked when the remove fav button is clicked. */
+    public Runnable getRemoveFavAction()
+    {
+        return this.btRemoveClicker;
+    }
+    
     /** @return the list of fav directories. */
     public NamedPathList getFavList()
     {
@@ -131,14 +165,16 @@ public class VisitedDirChoicePanel extends Panel {
     }
     
     /** @return the list of history directories. */
-    public NamedPathList getHistList()
+    public ShortenedDirList getHistList()
     {
         return this.histDirList;
     }    
 
     private Consumer<Path> dirChanger;
     private Runnable btNewClicker;
+    private Runnable btRemoveClicker;
     private final Button btNew;
+    private final Button btRemove;
     private final NamedPathList favDirList;
-    private final NamedPathList histDirList;
+    private final ShortenedDirList histDirList;
 }

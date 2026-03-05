@@ -44,6 +44,7 @@ public class DirChoicePanel extends Panel {
         
         this.dirChanger = (p) -> {};
         this.cwdCopier = (p) -> {};
+        this.lastSelectedIndex = 0;
         
         this.build();
         this.buildListeners();
@@ -93,10 +94,10 @@ public class DirChoicePanel extends Panel {
     {
         this.btCopyCWD.addActionListener( (evt) -> this.doCopyCWD() );
         this.dirList.addActionListener( () -> this.doDirSelected() );
+        this.dirList.addItemListener( (evt) -> this.updateDirMarked() );
         this.btUp.addActionListener( (evt) -> this.doGoUpDirSelected());
         this.topDirs.addItemListener( (evt) -> this.doTopDirSelected() );        
-        this.edCWD
-                    .addKeyListener( new KeyListener() {
+        this.edCWD.addKeyListener( new KeyListener() {
                         @Override
                         public void keyTyped(KeyEvent e)
                         {
@@ -132,11 +133,22 @@ public class DirChoicePanel extends Panel {
     /** Change directory from the dir list. */
     private void doDirSelected()
     {
-        int dirPos = this.dirList.getSelectedIndex();
+        int dirPos = this.getDirList().getSelectedIndex();
         
         if ( dirPos >= 0 ) {
-            final Path PATH = this.dirList.getPathAt( dirPos );
+            final Path PATH = this.getDirList().getPathAt( dirPos );
             this.dirChanger.accept( PATH );
+            this.lastSelectedIndex = dirPos;
+        }
+    }
+    
+    /** Change the directory marked. */
+    private void updateDirMarked()
+    {
+        int dirPos = this.getDirList().getSelectedIndex();
+        
+        if ( dirPos >= 0 ) {
+            this.lastSelectedIndex = dirPos;
         }
     }
     
@@ -244,6 +256,13 @@ public class DirChoicePanel extends Panel {
         for(Path p: SUB_DIRECTORIES) {
             DIR_LIST.add( p );
         }
+        
+        if ( this.lastSelectedIndex >= 0
+          && this.lastSelectedIndex < DIR_LIST.count() )
+        {
+            DIR_LIST.select( this.lastSelectedIndex );
+            DIR_LIST.makeVisible( this.lastSelectedIndex );
+        }
     }
     
     private final PathList dirList;
@@ -252,6 +271,7 @@ public class DirChoicePanel extends Panel {
     private final Button btCopyCWD;
     private final Choice topDirs;
     
+    private int lastSelectedIndex;
     private Consumer<Path> dirChanger;
     private Consumer<String> cwdCopier;
 }

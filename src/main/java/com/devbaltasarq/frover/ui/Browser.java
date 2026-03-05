@@ -31,7 +31,6 @@ public abstract class Browser {
     {
         this.view = view;
         this.cfg = cfg;
-        
         this.view.getDirChoicePanel().setChangeDirAction(
                                                 (p) -> this.cd( p ) );
     }
@@ -53,8 +52,8 @@ public abstract class Browser {
     {
         final boolean SHOW_HIDDEN = this.cfg.isShowingHiddenFiles().get();
         final List<Entry> ENTRIES = this.getDirBrowser().readDir( SORTER );
-        final var DIRS = new ArrayList<Path>( 5 );
-        final var FILES = new ArrayList<Path>( 5 );
+        final var DIRS = new ArrayList<Path>( ENTRIES.size() );
+        final var FILES = new ArrayList<Path>( ENTRIES.size() / 3 );
         final Path DIR = this.getDirBrowser().getDirectory().getPath();
         List<Path> targetList;
         
@@ -88,9 +87,7 @@ public abstract class Browser {
         return this.dirBrowser;
     }
     
-    
-    
-    /** @return the chosen entry (dir or file), or false if nothing is selected. */
+    /** @return the chosen entry (dir or file), or null if nothing is selected. */
     public Entry getChosenEntry()
     {
         final PathList DIR_CHOICE = this.view.getDirChoicePanel().getDirList();
@@ -107,7 +104,9 @@ public abstract class Browser {
         // Determine the path
         int pos = targetList.getSelectedIndex();
         
-        if ( pos >= 0 ) {
+        if ( pos >= 0
+          && pos < targetList.count() )
+        {
             path = targetList.getPathAt( pos );
             toret = Entry.from( path.toFile() );
         }
@@ -133,7 +132,7 @@ public abstract class Browser {
         
         return toret;
     }
-   
+    
     protected DirBrowser dirBrowser;
     protected final Cfg cfg;
     protected final BrowserView view;

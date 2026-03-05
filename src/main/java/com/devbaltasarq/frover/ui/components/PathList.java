@@ -8,12 +8,18 @@ import java.awt.Color;
 import java.awt.Font;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 
 /** A panel showing a list of files.
   * @author baltasarq
   */
-public class PathList extends IndependentPathList {
+public class PathList extends java.awt.List implements PathChoice {
+    public static final Color FG = Color.WHITE;
+    public static final Color BG = Color.GRAY;
+    public static final Font FONT_MONO_16 = Font.decode( "monospaced-16" );
+
     /** Creates a new panel with a list of file/dir entries.
       * Foreground color is FG, background color is BG,
       * and font is MONO_FONT_16.
@@ -27,8 +33,8 @@ public class PathList extends IndependentPathList {
     {
         this.dir = null;
         
-        this.setForeground( Color.WHITE );
-        this.setBackground( Color.GRAY );
+        this.setForeground( fg );
+        this.setBackground( bg );
         this.setFont( font );
     }
     
@@ -44,11 +50,11 @@ public class PathList extends IndependentPathList {
         this.dir = path;
     }
     
-    /** Sets the dir for this file list, provided that the path is absolute.
+    /** Sets the CWD for this file list, provided that the path is absolute.
       * Provided also that all files pertain to a given directory.
       * @param path the path to extract the directory from.
       */
-    protected void setDir(Path path)
+    protected void setCwdIfNeeded(Path path)
     {
         if ( this.dir == null
           && path != null )
@@ -57,11 +63,45 @@ public class PathList extends IndependentPathList {
         }
     }
     
-    /** Returns a file entry with an absolute path, given a dir and a name.
+    /** @return the number of paths in the list. */
+    public int count()
+    {
+        return this.getItemCount();
+    }
+    
+    /** @return the path at a given pos in the list.
+      * @param row the position to retrieve the file from.
+      */
+    public Path getPathAt(int row)
+    {
+        return this.pathFromEntryName( this.getItem( row ));
+    }
+    
+    /** @return the complete list of paths in the list. */
+    public java.util.List<Path> getAllPaths()
+    {
+        final var STR_LIST = new ArrayList<String>( Arrays.asList( this.getItems() ) );
+        final var TORET = new ArrayList<Path>( STR_LIST.size() );
+        
+        for(String STR: STR_LIST) {
+            TORET.add( this.pathFromEntryName( STR ) );
+        }
+        
+        return TORET;
+    }
+    
+    /** Adds a listener for the case in which a file is selected.
+      * @param action what to do...
+      */
+    public void addActionListener(Runnable action)
+    {
+        this.addActionListener( (evt) -> action.run() );
+    }
+    
+    /** Returns a file entry with an absolute path, given a name.
       * @param fn the string with the file name.
       * @return an path with an absolute path.
      */
-    @Override
     protected Path pathFromEntryName(String fn)
     {
         return Path.of( this.dir.toString(), fn );
@@ -70,31 +110,34 @@ public class PathList extends IndependentPathList {
     /** Adds a new path.
       * @param path the path to add to the end of the list.
       */
-    @Override
     public void add(Path path)
     {
-        this.setDir( path );
-        super.add( path.getFileName() );
+        this.setCwdIfNeeded( path );
+        super.add( path.getFileName().toString() );
     }
     
     /** Inserts a new path in the list.
       * @param row the number of the row to insert the path into.
       * @param path the file to add to the end of the list.
       */
-    @Override
     public void insert(int row, Path path)
     {
-        this.setDir( path );
-        super.insert( row, path.getFileName() );
+        this.setCwdIfNeeded( path );
+        super.add( path.getFileName().toString(), row );
+    }
+    
+    @Override
+    public void remove(int row)
+    {
+        this.removePathAt( row );
     }
     
     /** Remove a path at a given row.
       * @param row the number of the row for the file to remove.
       */
-    @Override
     public void removePathAt(int row)
     {
-        super.removePathAt( row );
+        super.remove( row );
         
         if ( this.getItemCount() == 0 ) {
             this.dir = null;

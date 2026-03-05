@@ -116,6 +116,7 @@ public class DirBrowser {
         return this.path.toFile().getUsableSpace();
     }
     
+    private int selectedIndex;
     private final Path path;
     private final List<Entry> entries;
 }
