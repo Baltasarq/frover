@@ -6,16 +6,16 @@ package com.devbaltasarq.frover.core;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Map;
 import java.util.EnumMap;
 import java.util.logging.Logger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.lang.reflect.Type;
+import java.awt.Color;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import java.util.Map;
 
 
 /** The configuration for the app
@@ -25,6 +25,8 @@ public class Config {
     private static final Logger LOG = Logger.getLogger( Config.class.getSimpleName() );
     private static final String RECORD_SEPARATOR = "\u001C\u001E";
     private static final String LBL_FAV_HOME = "Home";
+    private static final String STR_FMT_COLOR = "#%02x%02x%02x%02x";
+    private static final int STR_COLOR_FMT_LEN = 9;
 
     public enum Key {
         APP_NAME,
@@ -38,6 +40,14 @@ public class Config {
         LEFT,
         FAV_NAMES,
         FAV_DIRS,
+        FAV_BG_COLOR,
+        FAV_FG_COLOR,
+        DIR_BROWSER_BG_COLOR,
+        DIR_BROWSER_FG_COLOR,
+        FILE_BROWSER_BG_COLOR,
+        FILE_BROWSER_FG_COLOR,
+        BTNS_BG_COLOR,
+        BTNS_FG_COLOR        
     }
     
     private Config(String appName)
@@ -66,6 +76,14 @@ public class Config {
         this.configValues.put( Key.HEIGHT, "-1" );
         this.configValues.put( Key.FAV_NAMES, LBL_FAV_HOME );
         this.configValues.put( Key.FAV_DIRS, HOME_DIR );
+        this.configValues.put( Key.FAV_BG_COLOR, strRGBFromColor( Color.BLACK ) );
+        this.configValues.put( Key.FAV_FG_COLOR, strRGBFromColor( Color.WHITE ) );
+        this.configValues.put( Key.DIR_BROWSER_BG_COLOR, strRGBFromColor( Color.GRAY ) );
+        this.configValues.put( Key.DIR_BROWSER_FG_COLOR, strRGBFromColor( Color.WHITE ) );
+        this.configValues.put( Key.FILE_BROWSER_BG_COLOR, strRGBFromColor( Color.GRAY ) );
+        this.configValues.put( Key.FILE_BROWSER_FG_COLOR, strRGBFromColor( Color.WHITE ) );
+        this.configValues.put( Key.BTNS_BG_COLOR, strRGBFromColor( Color.WHITE ) );
+        this.configValues.put( Key.BTNS_FG_COLOR, strRGBFromColor( Color.BLUE ) );
     }
     
     /** Builds the config directory path.
@@ -191,6 +209,60 @@ public class Config {
         }
     }
     
+    /** @return a string in the STR_FMT_COLOR, i.e., #rrggbbaa
+      * @param color a regular awt.Color.
+      */
+    private static String strRGBFromColor(Color color)
+    {
+        return String.format( STR_FMT_COLOR,
+                                        color.getRed(),
+                                        color.getGreen(),
+                                        color.getBlue(),
+                                        color.getTransparency() );
+    }
+    
+    /** @return an awt.Color object from a given string
+      * @param strColor a string in the STR_FMT_COLOR, i.e., #aarrggbb
+      */
+    private static Color colorFromstrARGB(String strColor)
+                                                throws IllegalArgumentException
+    {
+        strColor = strColor.trim();
+        
+        // Chk start with the '#'
+        if ( !strColor.startsWith( "#" ) ) {
+            throw new IllegalArgumentException( "missing '#' prefix" );
+        }
+        
+        // Check that we have four pairs, and of course, the leading '#'
+        if ( strColor.length() < STR_COLOR_FMT_LEN ) {
+            throw new IllegalArgumentException(
+                        String.format( "format should be '%s', not '%s'",
+                                STR_FMT_COLOR,
+                                strColor ) );
+        }
+        
+        // Now parse the components
+        strColor = strColor.substring( 1 );
+        
+        int red = 0;
+        int green = 0;
+        int blue = 0;
+        int alpha = 255;
+            
+        // Parse each two-digit hex segment and convert to decimal
+        try {
+            red = Integer.parseInt( strColor.substring( 0, 2 ), 16 );
+            green = Integer.parseInt( strColor.substring( 2, 4 ), 16 );
+            blue = Integer.parseInt( strColor.substring( 4, 6 ), 16 );
+            alpha = Integer.parseInt( strColor.substring( 6, 8 ), 16 );
+        } catch(NumberFormatException exc) {
+            throw new IllegalArgumentException( "invalid color number in: " + strColor );
+        }
+
+        return new Color( red, green, blue, alpha );
+    }
+    
     public static Config restore(String appName)
     {
         if ( uniqueInstance != null ) {
@@ -203,7 +275,7 @@ public class Config {
         
         try {    
             final String CONTENTS = Files.readString( Path.of( FILE_PATH ) );
-            final Type TYPE = new TypeToken<Map<String, String>>(){}.getType();
+            final var TYPE = new TypeToken<Map<String, String>>(){}.getType();
             final Map<String, String> MAP = GSON.fromJson( CONTENTS, TYPE );
             
             if ( MAP != null ) {            
