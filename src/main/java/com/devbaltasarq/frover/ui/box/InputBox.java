@@ -31,6 +31,35 @@ public class InputBox extends Dialog {
       * @param title the given title of the dialog.
       * @param message the given message of the dialog.
       * @param initText the inital text in the text field.
+      * @param selectionStart the start of the selected text.
+      * @param selectionEnd the end of the selected text.
+      */
+    public InputBox(Window owner,
+                    String title,
+                    String message,
+                    String initText,
+                    int selectionStart,
+                    int selectionEnd)
+    {
+        this( owner,
+                title,
+                message,
+                initText );
+        
+        selectionStart = Math.max( 0, selectionStart );
+        
+        if ( selectionEnd < 0 ) {
+            selectionEnd = initText.length();
+        }
+        
+        this.edValue.select( selectionStart, selectionEnd );
+    }
+    
+    /** Creates a dialog with a title, a message, and an Ok button.
+      * @param owner the given owner of this dialog.
+      * @param title the given title of the dialog.
+      * @param message the given message of the dialog.
+      * @param initText the inital text in the text field.
       */
     public InputBox(Window owner, String title, String message, String initText)
     {

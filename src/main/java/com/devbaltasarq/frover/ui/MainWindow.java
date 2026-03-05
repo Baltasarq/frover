@@ -41,8 +41,6 @@ import java.awt.TextField;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.KeyListener;
-import java.awt.event.TextEvent;
-import java.awt.event.TextListener;
 
 
 /** Control for MainWindow.
@@ -433,7 +431,9 @@ public class MainWindow extends Browser {
                                         this.view.getWindow(),
                                         this.actionRename.getLabel(),
                                         "New name for: `" + FILE_NAME + "`",
-                                        FILE_NAME );
+                                        FILE_NAME,
+                                        0,
+                                        FILE_NAME.indexOf( '.' ) );
             String newName = INPUT_BOX.run();
             
             LOG.info( "\trenaming from: `" + ENTRY.asCanonical() + "`" );
@@ -722,7 +722,7 @@ public class MainWindow extends Browser {
     {
         final Toolkit TOOLKIT = Toolkit.getDefaultToolkit();
         final Clipboard CLIPBOARD = TOOLKIT.getSystemClipboard();
-        
+
         CLIPBOARD.setContents( new StringSelection( text ), null );
     }
         
