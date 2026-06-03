@@ -17,10 +17,20 @@ import java.util.stream.Collectors;
   * @author baltasarq
   */
 public class CmdExecutor {
+    /** Executes a given command.
+      * @param cwd the working directory for the command.
+      * @param cmd the command itself, as in "notepad f.txt"
+      * @param log a function that accepts a string to log it.
+      */
     public CmdExecutor(Path cwd, String cmd, Consumer<String> log)
     {
         this.cwd = cwd;
         this.cmd = cmd;
+        
+        if ( log == null ) {
+            log = (s) -> {};
+        }
+        
         this.log = log;
     }
     
@@ -38,6 +48,7 @@ public class CmdExecutor {
         return CMD;
     }
     
+    /** Executes the command. */
     public void run()
     {
         final var BUILDER = new ProcessBuilder();

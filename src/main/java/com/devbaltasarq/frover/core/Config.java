@@ -25,6 +25,9 @@ public class Config {
     private static final Logger LOG = Logger.getLogger( Config.class.getSimpleName() );
     private static final String RECORD_SEPARATOR = "\u001C\u001E";
     private static final String LBL_FAV_HOME = "Home";
+    private static final String BASH_PATH = "/usr/bin/bash";
+    private static final String TERM_PATH = "/usr/bin/xterm";
+    private static final String SH_EXTENSION = "sh";
     private static final String STR_FMT_COLOR = "#%02x%02x%02x%02x";
     private static final int STR_COLOR_FMT_LEN = 9;
 
@@ -40,6 +43,10 @@ public class Config {
         LEFT,
         FAV_NAMES,
         FAV_DIRS,
+        EXTENSIONS,
+        APP_PATHS,
+        TERM_PATH,
+        // Color names format: ends with _COLOR, and has a FG or BG.
         FAV_BG_COLOR,
         FAV_FG_COLOR,
         DIR_BROWSER_BG_COLOR,
@@ -47,7 +54,7 @@ public class Config {
         FILE_BROWSER_BG_COLOR,
         FILE_BROWSER_FG_COLOR,
         BTNS_BG_COLOR,
-        BTNS_FG_COLOR        
+        BTNS_FG_COLOR
     }
     
     private Config(String appName)
@@ -84,6 +91,9 @@ public class Config {
         this.configValues.put( Key.FILE_BROWSER_FG_COLOR, strRGBFromColor( Color.WHITE ) );
         this.configValues.put( Key.BTNS_BG_COLOR, strRGBFromColor( Color.WHITE ) );
         this.configValues.put( Key.BTNS_FG_COLOR, strRGBFromColor( Color.BLUE ) );
+        this.configValues.put( Key.EXTENSIONS, SH_EXTENSION );
+        this.configValues.put( Key.APP_PATHS, BASH_PATH );
+        this.configValues.put( Key.TERM_PATH, TERM_PATH );
     }
     
     /** Builds the config directory path.
@@ -121,6 +131,43 @@ public class Config {
         
         final var TORET = new File( strConfigDir, strConfigFileName );
         return TORET.getAbsolutePath();
+    }
+    
+    /** Gets the associated color. Prerequisites are checked to verify so.
+      * This has the advantage that it checks whether the color
+      * is for background or foreground, and gives defaults
+      * (black and white, respectively), that make the interface visible
+      * in all cases.
+      * @param key the key to look for in the configuration store.
+      * @return an awt.Color, corresponding to the value stored.
+      */
+    public Color getColor(Key key)
+    {
+        String strColor = this.configValues.get( key );
+        String keyName = key.toString();
+        Color toret = null;
+        
+        assert keyName.endsWith( "_COLOR" ):
+                            "trying to decode not a color: " + keyName;
+        
+        if ( strColor != null ) {
+            try {
+                toret = colorFromStrARGB( strColor );
+            } catch(IllegalArgumentException exc) {
+                LOG.warning( "Error decoding color: " + strColor );
+            }
+        }
+        
+        if ( toret == null ) {
+            boolean isBackground = keyName.contains( "BG" );
+            toret = Color.BLACK;
+            
+            if ( !isBackground ) {
+                toret = Color.WHITE;
+            }
+        }
+        
+        return toret;
     }
     
     /** @return the associated value, or null if it does not exist.
@@ -212,7 +259,7 @@ public class Config {
     /** @return a string in the STR_FMT_COLOR, i.e., #rrggbbaa
       * @param color a regular awt.Color.
       */
-    private static String strRGBFromColor(Color color)
+    public static String strRGBFromColor(Color color)
     {
         return String.format( STR_FMT_COLOR,
                                         color.getRed(),
@@ -221,10 +268,10 @@ public class Config {
                                         color.getTransparency() );
     }
     
-    /** @return an awt.Color object from a given string
+    /** @return an awt.Color object, decoded from a given string
       * @param strColor a string in the STR_FMT_COLOR, i.e., #aarrggbb
       */
-    private static Color colorFromstrARGB(String strColor)
+    public static Color colorFromStrARGB(String strColor)
                                                 throws IllegalArgumentException
     {
         strColor = strColor.trim();

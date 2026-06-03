@@ -6,8 +6,8 @@ package com.devbaltasarq.frover.ui.components;
 
 import java.awt.Color;
 import java.awt.Font;
-import java.awt.Panel;
-import java.awt.Button;
+import javax.swing.JPanel;
+import javax.swing.JButton;
 import java.awt.GridLayout;
 import java.awt.BorderLayout;
 
@@ -19,7 +19,7 @@ import java.util.function.Consumer;
   * @see DirList
   * @author baltasarq
   */
-public class VisitedDirChoicePanel extends Panel {
+public class VisitedDirChoicePanel extends JPanel {
     public static final Color FG = Color.WHITE;
     public static final Color BG = Color.GRAY;
     public static final Font FONT_MONO_16 = Font.decode( "monospaced-16" );
@@ -31,8 +31,8 @@ public class VisitedDirChoicePanel extends Panel {
     
     public VisitedDirChoicePanel(Color fg, Color bg, Font font)
     {
-        this.btNew = new Button( "+" );
-        this.btRemove = new Button( "-" );
+        this.btNew = new JButton( "+" );
+        this.btRemove = new JButton( "-" );
         this.favDirList = new NamedPathList( fg, bg, font );
         this.histDirList = new ShortenedDirList( fg, bg, font );
         this.dirChanger = (p) -> {};
@@ -54,9 +54,9 @@ public class VisitedDirChoicePanel extends Panel {
         final var LYB = new BorderLayout();
         final var LYG = new GridLayout( 2, 1 );
         final var LYP = new GridLayout( 1, 2 );
-        final var PANEL_MAIN = new Panel( LYB );
-        final var PANEL_GRID = new Panel( LYG );
-        final var PANEL_BUTTONS = new Panel( LYP );
+        final var PANEL_MAIN = new JPanel( LYB );
+        final var PANEL_GRID = new JPanel( LYG );
+        final var PANEL_BUTTONS = new JPanel( LYP );
         
         LYB.setHgap( 5 );
         LYB.setVgap( 5 );
@@ -168,13 +168,25 @@ public class VisitedDirChoicePanel extends Panel {
     public ShortenedDirList getHistList()
     {
         return this.histDirList;
-    }    
+    }
+    
+    /** @return the button for a new fav. */
+    public JButton getBtNew()
+    {
+        return this.btNew;
+    }
+    
+    /** @return the button for removing a fav. */
+    public JButton getBtRemove()
+    {
+        return this.btRemove;
+    }
 
     private Consumer<Path> dirChanger;
     private Runnable btNewClicker;
     private Runnable btRemoveClicker;
-    private final Button btNew;
-    private final Button btRemove;
+    private final JButton btNew;
+    private final JButton btRemove;
     private final NamedPathList favDirList;
     private final ShortenedDirList histDirList;
 }

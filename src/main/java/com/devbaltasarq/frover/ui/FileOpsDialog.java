@@ -7,14 +7,14 @@ package com.devbaltasarq.frover.ui;
 import com.devbaltasarq.frover.ui.fileopsdialog.FileOpsDialogView;
 import com.devbaltasarq.frover.core.Entry;
 import com.devbaltasarq.frover.core.DirBrowser;
+import java.io.IOException;
+import java.nio.file.Path;
 
-import java.awt.Frame;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.KeyEvent;
-import java.io.IOException;
-import java.nio.file.Path;
+import javax.swing.JFrame;
 
 
 /** Allows the copying files.
@@ -26,7 +26,7 @@ public class FileOpsDialog extends Browser {
       * @param fileToCopy an Entry.File representing the file to copy.
       * @throws IOException if the file's directory cannot be read.
       */
-    public FileOpsDialog(Frame owner, Entry fileToCopy)
+    public FileOpsDialog(JFrame owner, Entry fileToCopy)
             throws IOException
     {
         this( new FileOpsDialogView( owner ), fileToCopy );
@@ -51,6 +51,7 @@ public class FileOpsDialog extends Browser {
         this.getView().getEdFileName().setText( entryToCopy.getFileName());
         this.buildListeners();
         this.internalSyncToCurrentDir();
+        this.getView().getEdFileName().requestFocus();
     }
     
     private void buildListeners()
@@ -131,7 +132,8 @@ public class FileOpsDialog extends Browser {
       */
     public Path show()
     {
-        this.getView().getWindow().setVisible( true );
+        this.getView().getDialog().setModal( true );
+        this.getView().getDialog().setVisible( true );
         return this.getTargetPath();
     }
     

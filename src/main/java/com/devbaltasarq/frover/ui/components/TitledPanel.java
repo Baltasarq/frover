@@ -4,17 +4,18 @@
 package com.devbaltasarq.frover.ui.components;
 
 
-import java.awt.Panel;
-import java.awt.Label;
 import java.awt.BorderLayout;
 import java.awt.Font;
+
+import javax.swing.JPanel;
+import javax.swing.JLabel;
 
 
 /** A Panel with a title.
   * This is a panel with a BorderLayout and a label at north.
   * @author baltasarq
   */
-public class TitledPanel extends Panel {
+public class TitledPanel extends JPanel {
     public static final Font FONT_SERIF_18 = Font.decode( "serif-bold-18" );
     
     public TitledPanel(String title)
@@ -35,16 +36,16 @@ public class TitledPanel extends Panel {
         LY.setVgap( 10 );
         
         this.lblTitle = this.buildTitleLabel( title, font );
-        this.pnlContents = new Panel();
+        this.pnlContents = new JPanel();
         
         this.setLayout( LY );
         this.add( this.lblTitle, BorderLayout.NORTH );
         this.add( this.pnlContents, BorderLayout.CENTER );
     }
     
-    private Label buildTitleLabel(String title, Font font)
+    private JLabel buildTitleLabel(String title, Font font)
     {
-        final Label TORET = new Label( title );
+        final var TORET = new JLabel( title );
         
         TORET.setFont( font );
         
@@ -64,17 +65,17 @@ public class TitledPanel extends Panel {
     }
     
     /** @return the label that holds the title. */
-    public Label getTitleLabel()
+    public JLabel getTitleLabel()
     {
         return this.lblTitle;
     }
     
     /** @return the panel that holds the contents. */
-    public Panel getContentsPanel()
+    public JPanel getContentsPanel()
     {
         return this.pnlContents;
     }
     
-    private Panel pnlContents;
-    private Label lblTitle;
+    private JPanel pnlContents;
+    private JLabel lblTitle;
 }

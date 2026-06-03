@@ -4,11 +4,12 @@
 package com.devbaltasarq.frover.ui.components;
 
 
-import java.awt.Button;
-import java.awt.MenuItem;
-
 import com.devbaltasarq.frover.ui.components.actionwidgets.ActionButton;
 import com.devbaltasarq.frover.ui.components.actionwidgets.ActionMenuItem;
+
+import javax.swing.JComponent;
+import javax.swing.JButton;
+import javax.swing.JMenuItem;
 
 
 /** Represents a Widget of the view.
@@ -16,7 +17,7 @@ import com.devbaltasarq.frover.ui.components.actionwidgets.ActionMenuItem;
   * @author baltasarq
   */
 public abstract class ActionWidget {
-    public ActionWidget(Object widget)
+    public ActionWidget(JComponent widget)
     {
         this.widget = widget;
     }
@@ -47,8 +48,8 @@ public abstract class ActionWidget {
         ActionWidget toret = null;
         
         switch ( obj ) {
-            case Button button -> toret = new ActionButton( button );
-            case MenuItem menuItem -> toret = new ActionMenuItem( menuItem );
+            case JButton button -> toret = new ActionButton( button );
+            case JMenuItem menuItem -> toret = new ActionMenuItem( menuItem );
             default -> {
                 throw new Error( "No ActionWidget for " + obj.getClass().getSimpleName() );
             }

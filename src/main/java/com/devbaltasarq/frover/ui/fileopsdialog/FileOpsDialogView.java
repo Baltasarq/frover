@@ -10,14 +10,15 @@ import com.devbaltasarq.frover.ui.components.FileChoicePanel;
 import com.devbaltasarq.frover.ui.components.TitledPanel;
 
 import java.awt.Dimension;
-import java.awt.Frame;
-import java.awt.Dialog;
-import java.awt.Panel;
 import java.awt.BorderLayout;
-import java.awt.Button;
 import java.awt.Font;
 import java.awt.GridLayout;
-import java.awt.TextField;
+
+import javax.swing.JFrame;
+import javax.swing.JDialog;
+import javax.swing.JPanel;
+import javax.swing.JButton;
+import javax.swing.JTextField;
 
 
 /** The view of the copy dialog.
@@ -28,17 +29,17 @@ public class FileOpsDialogView extends BrowserView {
     public static final Dimension START_SIZE = new Dimension( 420, 320 );
     public static final Font FONT_MONO_16 = Font.decode( "monospaced-16" );
     
-    public FileOpsDialogView(Frame owner)
+    public FileOpsDialogView(JFrame owner)
     {
-        super( new Dialog( owner, true ) );
+        super( new JDialog( owner ) );
         
         this.dirChoicePanel = new DirChoicePanel();
         this.fileChoicePanel = new FileChoicePanel();
-        this.edOrgFile = new TextField();
-        this.edEndFile = new TextField();
-        this.edFileName = new TextField();
-        this.btOk = new Button( "Ok" );
-        this.btCancel = new Button( "Cancel" );
+        this.edOrgFile = new JTextField();
+        this.edEndFile = new JTextField();
+        this.edFileName = new JTextField();
+        this.btOk = new JButton( "Ok" );
+        this.btCancel = new JButton( "Cancel" );
         
         this.build();
         this.getDialog().setLocationRelativeTo( owner );
@@ -48,7 +49,7 @@ public class FileOpsDialogView extends BrowserView {
     {
         final var LY_INTERNAL = new BorderLayout( 1, 2 );
         final var LY_MAIN = new BorderLayout( 1, 2 );
-        final var INTERNAL_PANEL = new Panel( LY_INTERNAL );
+        final var INTERNAL_PANEL = new JPanel( LY_INTERNAL );
         
         LY_INTERNAL.setHgap( 5 );
         LY_INTERNAL.setVgap( 5 );
@@ -68,10 +69,9 @@ public class FileOpsDialogView extends BrowserView {
         this.getWindow().setMinimumSize( MIN_SIZE );
         this.getWindow().setSize( START_SIZE );
         this.getWindow().pack();
-        this.getWindow().setModalExclusionType( Dialog.ModalExclusionType.NO_EXCLUDE );
     }
     
-    private Panel buildBrowser()
+    private JPanel buildBrowser()
     {
         final var LY = new GridLayout( 1, 2 );
         final var TORET = new TitledPanel( "To directory" );
@@ -86,7 +86,7 @@ public class FileOpsDialogView extends BrowserView {
         return TORET;
     }
     
-    private Panel buildOrgFile()
+    private JPanel buildOrgFile()
     {
         final var LY = new BorderLayout();
         final var TORET = new TitledPanel( "File" );
@@ -103,7 +103,7 @@ public class FileOpsDialogView extends BrowserView {
         return TORET;
     }
     
-    private Panel buildTargetFileName()
+    private JPanel buildTargetFileName()
     {
         final var LY = new BorderLayout();
         final var TORET = new TitledPanel( "Final file name" );
@@ -124,23 +124,23 @@ public class FileOpsDialogView extends BrowserView {
         return TORET;
     }
     
-    private Panel buildButtons()
+    private JPanel buildButtons()
     {
         final var LY = new GridLayout( 1, 4, 5, 5 );
-        final var TORET = new Panel( LY );
+        final var TORET = new JPanel( LY );
         
-        TORET.add( new Panel() );
-        TORET.add( new Panel() );
+        TORET.add( new JPanel() );
+        TORET.add( new JPanel() );
         TORET.add( this.btCancel );
         TORET.add( this.btOk );
         
         return TORET;
     }
     
-    /** @return the dialog for this view. */
-    public Dialog getDialog()
+    /** @return the dialog associated to this view. */
+    public JDialog getDialog()
     {
-        return (Dialog) this.getWindow();
+        return (JDialog) this.getWindow();
     }
     
     /** @return the panel for selecting directories. */
@@ -158,40 +158,40 @@ public class FileOpsDialogView extends BrowserView {
     }
     
     /** @return the text field for the path of the original file. */
-    public TextField getEdOrgFile()
+    public JTextField getEdOrgFile()
     {
         return this.edOrgFile;
     }
     
     /** @return the text field for the target file name. */
-    public TextField getEdFileName()
+    public JTextField getEdFileName()
     {
         return this.edFileName;
     }
     
     /** @return the text field for the path of the target file. */
-    public TextField getEdEndFile()
+    public JTextField getEdEndFile()
     {
         return this.edEndFile;
     }
     
     /** @return the button for Ok. */
-    public Button getBtOk()
+    public JButton getBtOk()
     {
         return this.btOk;
     }
     
     /** @return the button for Cancel. */
-    public Button getBtCancel()
+    public JButton getBtCancel()
     {
         return this.btCancel;
     }
     
     private final DirChoicePanel dirChoicePanel;
     private final FileChoicePanel fileChoicePanel;
-    private final TextField edOrgFile;
-    private final TextField edEndFile;
-    private final TextField edFileName;
-    private final Button btOk;
-    private final Button btCancel;
+    private final JTextField edOrgFile;
+    private final JTextField edEndFile;
+    private final JTextField edFileName;
+    private final JButton btOk;
+    private final JButton btCancel;
 }

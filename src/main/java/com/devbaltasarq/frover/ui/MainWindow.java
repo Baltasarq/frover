@@ -15,32 +15,35 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.KeyEventDispatcher;
 import java.awt.KeyboardFocusManager;
-import java.awt.MenuShortcut;
 import java.awt.Desktop;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyListener;
+import javax.swing.JButton;
+import javax.swing.KeyStroke;
 
 import com.devbaltasarq.frover.core.AppInfo;
 import com.devbaltasarq.frover.core.Config;
 import com.devbaltasarq.frover.core.LogWriter;
 import com.devbaltasarq.frover.core.Size;
-import com.devbaltasarq.frover.core.Cfg;
+import com.devbaltasarq.frover.core.ViewSettings;
 import com.devbaltasarq.frover.core.CmdExecutor;
 import com.devbaltasarq.frover.core.DirBrowser;
 import com.devbaltasarq.frover.core.Entry;
 import com.devbaltasarq.frover.core.entries.Directory;
 import com.devbaltasarq.frover.core.entries.File;
-import com.devbaltasarq.frover.ui.box.MessageBox;
-import com.devbaltasarq.frover.ui.box.InputBox;
-import com.devbaltasarq.frover.ui.box.AskBox;
+import com.devbaltasarq.frover.core.OpenerEngine;
+import com.devbaltasarq.frover.core.TermPath;
+import com.devbaltasarq.frover.core.entries.Extension;
+import com.devbaltasarq.frover.ui.dlg.InputDlg;
 import com.devbaltasarq.frover.ui.components.NamedPathList;
 import com.devbaltasarq.frover.ui.components.PathList;
 import com.devbaltasarq.frover.ui.mainwindow.MainWindowView;
-import java.awt.TextField;
-import java.awt.event.FocusEvent;
-import java.awt.event.FocusListener;
-import java.awt.event.KeyListener;
+import javax.swing.JSplitPane;
 
 
 /** Control for MainWindow.
@@ -50,16 +53,6 @@ public class MainWindow extends Browser {
     private static final Logger LOG = Logger.getLogger( MainWindow.class.getName() );
     private static final String MSG_STATUS_SHOW_HIDDEN = "Showing hidden files";
     private static final String MSG_STATUS_HIDE_HIDDEN = "Hiding hidden files";
-    private static final List<String> WIN_SHELL = List.of(
-                                "cmd",
-                                "/c",
-                                "start",
-                                "cmd.exe" );
-
-    private static final List<String> NIX_SHELL =  List.of(
-                                "/usr/bin/xterm",
-                                "-fa", "Monospace",
-                                "-fs", "12" );
     
     public MainWindow(Path path)
     {
@@ -72,7 +65,9 @@ public class MainWindow extends Browser {
         
         final var VIEW = (MainWindowView) this.view;
         
+        this.isBuild = true;
         this.config = Config.restore( AppInfo.NAME );
+        this.openerEngine = OpenerEngine.build( this.config );
         this.logViewer = new LogWriter( LOG, 
                                    (str) ->
                                         VIEW.getLogViewer().append( str + "\n" ));
@@ -92,8 +87,9 @@ public class MainWindow extends Browser {
         this.actionViewOutput = new Action( "view_output", "View output" );
         this.actionOpenShell = new Action( "open_shell", "Open shell" );
         
+        this.termPath = TermPath.build( this.config );
         this.build( path );
-        this.applyConfig();
+        new UICfgBridge( VIEW, this.config ).applyCfgToUI();
     }
     
     private void build(Path path)
@@ -112,11 +108,10 @@ public class MainWindow extends Browser {
                 final String MSG = "booting failed";
                 
                 LOG.severe( MSG );
-                final var MBOX = new MessageBox(
-                                        this.getView().getFrame(),
-                                        AppInfo.NAME,
-                                        "ERROR: " + MSG );
-                MBOX.run();
+                Dlg.showInfo(
+                                this.getView().getFrame(),
+                                AppInfo.NAME,
+                                "ERROR: " + MSG );
             }
         }
     }
@@ -125,6 +120,8 @@ public class MainWindow extends Browser {
     public void run()
     {
         this.getView().getWindow().setVisible( true );
+        this.showOutput( false );
+        this.isBuild = false;
     }
     
     /** @return the corresponding view. */
@@ -135,6 +132,14 @@ public class MainWindow extends Browser {
     
     private void buildListeners()
     {
+        final JSplitPane SPLIT_PANEL = this.getView().getSplitPanel();
+        final JButton BtExe =
+                    this.getView().getButton( MainWindowView.Buttons.BtExe );
+
+        SPLIT_PANEL.addPropertyChangeListener(
+                        JSplitPane.DIVIDER_LOCATION_PROPERTY,
+                        (pce) -> this.doMainDividerMovement() );
+        
         this.buildActions();
         
         this.getView().
@@ -146,7 +151,7 @@ public class MainWindow extends Browser {
                                                 p.getFileName().toString() ) );
         this.getView().
                 getFileChoicePanel().setOpenFileAction(
-                                        (p) -> this.doView( p ) );
+                                        (p) -> this.doView( Entry.from( p ) ) );
         this.getView().
                 getVisitedDirChoicePanel().setChangeDirAction(
                                         (p) -> this.doCd( p ));
@@ -157,7 +162,7 @@ public class MainWindow extends Browser {
                 getVisitedDirChoicePanel().setRemoveFavAction(
                                         () -> this.doRemoveFavDir() );
         
-        this.getView().getBtExe().addActionListener( (evt) -> this.doCmd() );
+        BtExe.addActionListener( (evt) -> this.doCmd() );
         
         this.getView().getEdCmd().addFocusListener( new FocusListener() {
             @Override
@@ -213,12 +218,23 @@ public class MainWindow extends Browser {
     
     private void buildActions()
     {
+        final var BT_HELP =
+                    this.getView().getButton( MainWindowView.Buttons.BtHelp );
+        final var BT_RENAME =
+                    this.getView().getButton( MainWindowView.Buttons.BtRename );
+        final var BT_COPY =
+                    this.getView().getButton( MainWindowView.Buttons.BtCopy );
+        final var BT_DELETE =
+                    this.getView().getButton( MainWindowView.Buttons.BtDelete );
+        final var BT_VIEW =
+                    this.getView().getButton( MainWindowView.Buttons.BtView );
+
         // View output
         this.actionAbout.add( this.getView().getOpAbout() );
         this.actionAbout.set( () -> this.doAbout() );
         
         // Help
-        this.actionHelp.add( this.getView().getHelpButton() );
+        this.actionHelp.add( BT_HELP );
         this.actionHelp.add( this.getView().getOpHelp() );
         this.actionHelp.set( () -> this.doHelp() );
         
@@ -239,27 +255,27 @@ public class MainWindow extends Browser {
         this.actionNew.set( () -> this.doNew() );
         
         // Rename
-        this.actionRename.add( this.getView().getRenameButton() );
+        this.actionRename.add( BT_RENAME );
         this.actionRename.add( this.getView().getOpRename() );
         this.actionRename.set( () -> this.doRename() );
         
         // Copy
-        this.actionCopy.add( this.getView().getCopyButton() );
+        this.actionCopy.add( BT_COPY );
         this.actionCopy.add( this.getView().getOpCopy() );       
         this.actionCopy.set( () -> this.doCopy() );
-        
+  /*      
         // Move
-        this.actionMove.add( this.getView().getMoveButton() );
+        this.actionMove.add( BT_MOVE );
         this.actionMove.add( this.getView().getOpMove() );       
         this.actionMove.set( () -> this.doMove() );
-        
+    */    
         // Delete
-        this.actionDelete.add( this.getView().getDeleteButton() );
+        this.actionDelete.add( BT_DELETE );
         this.actionDelete.add( this.getView().getOpDelete() );       
         this.actionDelete.set( () -> this.doDelete() );
         
         // View
-        this.actionView.add( this.getView().getViewButton() );
+        this.actionView.add( BT_VIEW );
         this.actionView.add( this.getView().getOpView() );       
         this.actionView.set( () -> this.doView() );
         
@@ -277,18 +293,36 @@ public class MainWindow extends Browser {
         final var OP_QUIT = this.getView().getOpQuit();
         final var OP_COPY = this.getView().getOpCopy();
         final var OP_MOVE = this.getView().getOpMove();
+        final var OP_RENAME = this.getView().getOpRename();
         final var OP_DELETE = this.getView().getOpDelete();
         final var OP_NEW = this.getView().getOpNew();
         final var OP_SHELL = this.getView().getOpShell();
-        final var OP_REFRESH = this.getView().getOpRefresh();
+        final var OP_VIEW = this.getView().getOpView();
         
-        OP_QUIT.setShortcut( new MenuShortcut( KeyEvent.VK_Q ) );
-        OP_NEW.setShortcut( new MenuShortcut( KeyEvent.VK_N ) );
-        OP_COPY.setShortcut( new MenuShortcut( KeyEvent.VK_C ) );
-        OP_MOVE.setShortcut( new MenuShortcut( KeyEvent.VK_C, true ) );
-        OP_DELETE.setShortcut( new MenuShortcut( KeyEvent.VK_DELETE ) );
-        OP_REFRESH.setShortcut( new MenuShortcut( KeyEvent.VK_F5 ) );
-        OP_SHELL.setShortcut( new MenuShortcut( KeyEvent.VK_F4 ) );
+        OP_QUIT.setAccelerator(
+                        KeyStroke.getKeyStroke(
+                                        KeyEvent.VK_Q,
+                                        InputEvent.CTRL_DOWN_MASK ) );
+        OP_NEW.setAccelerator(
+                        KeyStroke.getKeyStroke(
+                                        KeyEvent.VK_N,
+                                        InputEvent.CTRL_DOWN_MASK ) );
+        OP_COPY.setAccelerator(
+                        KeyStroke.getKeyStroke(
+                                        KeyEvent.VK_C,
+                                        InputEvent.CTRL_DOWN_MASK ) );
+        OP_MOVE.setAccelerator(
+                        KeyStroke.getKeyStroke(
+                                        KeyEvent.VK_C,
+                                        InputEvent.SHIFT_DOWN_MASK
+                                        | InputEvent.CTRL_DOWN_MASK ) );
+        OP_DELETE.setAccelerator(
+                       KeyStroke.getKeyStroke(
+                                        KeyEvent.VK_DELETE,
+                                        InputEvent.CTRL_DOWN_MASK ) );
+        OP_RENAME.setAccelerator( KeyStroke.getKeyStroke( KeyEvent.VK_F2, 0 ) );
+        OP_VIEW.setAccelerator( KeyStroke.getKeyStroke( KeyEvent.VK_F5, 0 ) );
+        OP_SHELL.setAccelerator( KeyStroke.getKeyStroke( KeyEvent.VK_F4, 0 ) );
     }
     
     @Override
@@ -365,27 +399,29 @@ public class MainWindow extends Browser {
         String msg = "Create a new ";
         boolean createDir = false;
         String entryType = "file";
+        String entryName = "file.txt";
         
         LOG.info( "creating new..." );
         
         if ( DIR_CHOICE.isFocusOwner() ) {
             createDir = true;
             entryType = "directory";
+            entryName = "newDir";
         }
 
         msg += entryType;
         
-        final InputBox INPUT_BOX = new InputBox(
-                                this.getView().getWindow(),
+        final var DLG = new InputDlg(
+                                this.getView().getFrame(),
                                 this.actionNew.getLabel() + " - " + AppInfo.NAME,
                                 msg,
-                                "" );
-        
-        String entryName = INPUT_BOX.run();
-        String status = "";
-        
+                                entryName,
+                                0,
+                                entryName.lastIndexOf( "." ) );
+        entryName = DLG.run();
         LOG.info( "\tcreating new " + entryType );
-        
+
+        String status = "";
         if ( entryName != null
           && !entryName.isEmpty() )
         {
@@ -427,8 +463,8 @@ public class MainWindow extends Browser {
         
         if ( ENTRY != null ) {
             final String FILE_NAME = ENTRY.getFileName();
-            final var INPUT_BOX = new InputBox(
-                                        this.view.getWindow(),
+            final var INPUT_BOX = new InputDlg(
+                                        this.getView().getFrame(),
                                         this.actionRename.getLabel(),
                                         "New name for: `" + FILE_NAME + "`",
                                         FILE_NAME,
@@ -583,15 +619,14 @@ public class MainWindow extends Browser {
         boolean toret = true;
         
         if ( ENTRY.exists() ) {
-            final AskBox ASKER = new AskBox(
-                                        this.getView().getFrame(),
-                                        "Overwrite? - " + AppInfo.NAME,
-                                        "File already exists: `"
-                                                + ENTRY.getFileName() + "`",
-                                        "Do you want to overwrite it?",
-                                        "Overwrite",
-                                        "Cancel" );
-            toret = ASKER.run();
+            toret = Dlg.askYesNo(
+                            this.getView().getFrame(),
+                            "Overwrite? - " + AppInfo.NAME,
+                            "File already exists: `"
+                                    + ENTRY.getFileName() + "`"
+                            + "\nDo you want to overwrite it?",
+                            "Overwrite",
+                            "Cancel" );
         }        
         
         return toret;
@@ -607,14 +642,14 @@ public class MainWindow extends Browser {
         if ( ENTRY != null ) {
             final String FILE_NAME = ENTRY.getFileName();
             
-            final var ASK_BOX = new AskBox(
-                                this.getView().getFrame(),
-                                LBL_DELETE,
-                                LBL_DELETE + " `" + FILE_NAME,
-                                "Are you sure?",
-                                LBL_DELETE,
-                                "Cancel" );
-            if ( ASK_BOX.run() ) {
+            final var resultDlg = Dlg.askYesNo(
+                                    this.getView().getFrame(),
+                                    LBL_DELETE,
+                                    LBL_DELETE + " `" + FILE_NAME
+                                    + "\nAre you sure?",
+                                    LBL_DELETE,
+                                    "Cancel" );
+            if ( resultDlg ) {
                 // Delete it
                 if ( ENTRY.getFile().delete() ) {
                     status = "deleted: `" + FILE_NAME + "`";
@@ -642,7 +677,7 @@ public class MainWindow extends Browser {
         final Entry ENTRY = this.getChosenEntry();
                                         
         if ( ENTRY != null ) {
-            this.doView( ENTRY.getPath() );
+            this.doView( ENTRY );
         } else {
             String status = "missing selection";
             
@@ -654,14 +689,25 @@ public class MainWindow extends Browser {
     /** View action
       * @param FILE the file selected.
       */
-    public void doView(final Path FILE)
+    public void doView(final Entry FILE)
     {
         final Desktop DESKTOP = Desktop.getDesktop();
         String status = "view " + FILE;
 
         try {
+            final Extension EXT = Extension.from( FILE );
+            final File APP = this.openerEngine.getAppFor( EXT );
+            
             LOG.info( "view `" + FILE.toString() + "`" );
-            DESKTOP.open( FILE.toFile() );
+            
+            if ( APP != null ) {
+                this.openerEngine.open(
+                                    APP,
+                                    FILE,
+                                    this.logViewer.getWriter() );
+            } else {
+                DESKTOP.open( FILE.getPath().toFile() );
+            }
         } catch(IllegalArgumentException | IOException exc)
         {
             status = "problem opening: `" + FILE.toString() + "`: " + exc.toString();
@@ -683,7 +729,7 @@ public class MainWindow extends Browser {
         boolean val = !this.cfg.isShowingHiddenFiles().get();
         
         LOG.info( "showHiddenFiles `" + val + "`" );
-        this.cfg.setShowHiddenFiles( Cfg.HiddenFilesVisibility.from( val ) );
+        this.cfg.setShowHiddenFiles(ViewSettings.HiddenFilesVisibility.from( val ) );
         this.syncToCurrentDir();
     }
     
@@ -709,12 +755,10 @@ public class MainWindow extends Browser {
     /** The about action. */
     public void doAbout()
     {
-        final MessageBox MBOX = new MessageBox(
-                                        this.getView().getFrame(),
-                                        AppInfo.NAME,
-                                        AppInfo.getFullName() );
-        
-        MBOX.run();
+        Dlg.showInfo(
+                        this.getView().getFrame(),
+                        AppInfo.NAME,
+                        AppInfo.getFullName() );
     }
     
     /** Copies the CWD to the clipboard. */
@@ -734,20 +778,51 @@ public class MainWindow extends Browser {
         this.showOutput( val );
     }
     
+    public void doMainDividerMovement()
+    {
+        if ( !isBuild ) {
+            int height = this.getView().getWindow().getHeight();
+            int dividerLocation = this.getView().getSplitPanel().getDividerLocation();
+    System.out.println( "---Divided moved" );
+            if ( height > 0 ) {
+                double pos = dividerLocation / height;
+
+                if ( pos >= 0.9 ) {
+                    this.showOutput( false );
+                } else {
+                    this.showOutput( true );
+                }
+            }
+    System.out.println( "---End of Divided moved" );
+        }
+    }
+    
     /** Show/hide the output.
       * @param visible true if the output is to be visible, false otherwise.
       */
-    private void showOutput(boolean visible)
+    public void showOutput(boolean visible)
     {
+        final var SPLIT_PANEL = this.getView().getSplitPanel();
+
         this.getView().getLogViewer().setVisible( visible );
         this.getView().getLogViewer().revalidate();
-        this.cfg.setViewOutput( Cfg.OutputPanelVisibility.from( visible ) );
+        this.cfg.setViewOutput(ViewSettings.OutputPanelVisibility.from( visible ) );
+        
+        isBuild = true;
+        
+        if ( !visible ) {
+            SPLIT_PANEL.setDividerLocation( 1.0 );
+        } else {
+            SPLIT_PANEL.setDividerLocation( 0.8 );
+        }
+        
+        isBuild = false;
     }
     
     /** Execute a command. */
     public void doCmd()
     {
-        final TextField ED_CMD = this.getView().getEdCmd();
+        final var ED_CMD = this.getView().getEdCmd();
         final var EXE_ENGINE = new CmdExecutor(
                                        this.dirBrowser.getPath(),
                                        ED_CMD.getText(),
@@ -764,8 +839,8 @@ public class MainWindow extends Browser {
     public void doNewFavDir()
     {
         final var DIR = this.getDirBrowser().getDirectory();
-        final var DLG_INPUT = new InputBox(
-                        this.getView().getWindow(),
+        final var DLG_INPUT = new InputDlg(
+                        this.getView().getFrame(),
                         AppInfo.NAME,
                         "New favourite directory",
                         DIR.getFileName() );
@@ -794,16 +869,15 @@ public class MainWindow extends Browser {
     /** Open in shell. */
     public void doOpenInShell()
     {
-        LOG.info( "opening shell in: " + this.dirBrowser.getDirectory() );
         final Entry PATH = this.dirBrowser.getDirectory();
         String status = "opening shell in: " + PATH;
-        List<String> cmd = NIX_SHELL;
-        final var OS_NAME = System.getProperty( "os.name" ).toLowerCase();
         
-        if ( OS_NAME.contains( "windows" ) ) {
-            cmd = WIN_SHELL;
-        }
+        LOG.info( "opening shell in: " + PATH );
         
+        List<String> cmd = TermPath.get().getCmds();
+        
+        LOG.info( "term path is: " + String.join( "\n", cmd ) );
+                
         try {
             final var PROCESS = new ProcessBuilder( cmd )
                                     .directory( PATH.getFile() );
@@ -825,6 +899,8 @@ public class MainWindow extends Browser {
         final var STATUS = this.getView().getStatusBar();
         final Size FREE = new Size( this.dirBrowser.getDriveFreeSize() );
         final Size TOTAL = new Size( this.dirBrowser.getDriveSize() );
+        int numDirs = this.getView().getDirChoicePanel().getDirList().count();
+        int numFiles = this.getView().getFileChoicePanel().getFileList().count();
         String size = "N/A";
         
         if ( ENTRY instanceof File f) {
@@ -837,63 +913,17 @@ public class MainWindow extends Browser {
         }
         
         final String TXT = String.format(
-                                    "Free: %s / %s | %s | %s | %s",
+                                    "Free: %s / %s | %s | %s | %d dirs | %d files | %s",
                                     FREE.toString(),
                                     TOTAL.toString(),
                                     SHOW_HIDDEN ? MSG_STATUS_SHOW_HIDDEN
                                             : MSG_STATUS_HIDE_HIDDEN,
                                     "Size: " + size,
+                                    numDirs,
+                                    numFiles,
                                     msg );
         
         STATUS.setText( TXT );
-    }
-    
-    /** Applies the configuration to the app. */
-    private void applyConfig()
-    {
-        final var MAIN_VIEW = ( (MainWindowView) this.view );
-        final var WIN = MAIN_VIEW.getWindow();
-        final var FAV_DIR_LIST = MAIN_VIEW.getVisitedDirChoicePanel().getFavList();
-        
-        String strWidth = this.config.get( Config.Key.WIDTH );
-        String strHeight = this.config.get( Config.Key.HEIGHT );
-        String strLeft = this.config.get( Config.Key.LEFT );
-        String strTop = this.config.get( Config.Key.TOP );
-        final String[] FAV_NAMES = this.config.getList( Config.Key.FAV_NAMES );
-        final String[] FAV_DIRS = this.config.getList( Config.Key.FAV_DIRS );
-        
-        if ( !strWidth.equals( "-1" )
-          && !strHeight.equals( "-1" ) )
-        {
-            WIN.setSize(
-                Integer.parseInt( strWidth ),
-                Integer.parseInt( strHeight ));
-        }
-        
-        if ( !strLeft.equals( "-1" )
-          && !strTop.equals( "-1" ) )
-        {
-            WIN.setLocation(
-                Integer.parseInt( strLeft ),
-                Integer.parseInt( strTop ));
-        }
-        
-        // Adds the favourites fav dirs
-        if ( FAV_NAMES != null
-          && FAV_DIRS != null )
-        {
-            int numFavs = FAV_NAMES.length;
-
-            for(int i = 0; i < numFavs; ++i) {
-                try {
-                    FAV_DIR_LIST.add( new NamedPathList.NamedPath(
-                                                FAV_NAMES[ i ],
-                                            Path.of( FAV_DIRS[ i ] ) ) );
-                } catch(IndexOutOfBoundsException exc) {
-                    LOG.severe( "retrieving list of favs at: " + i );
-                }
-            }
-        }
     }
     
     /** Saves the settings to the config. */
@@ -901,12 +931,20 @@ public class MainWindow extends Browser {
     {
         final var WIN = ( (MainWindowView) this.view ).getWindow();
         final var FAV_DIR_LIST = this.getView().getVisitedDirChoicePanel().getFavList();
+        final var FILE_ASSOCS = this.openerEngine.all();
         final List<NamedPathList.NamedPath> FAV_PAIRS = FAV_DIR_LIST.getAll();
         final List<String> STR_FAV_NAMES = FAV_PAIRS.stream()
                                                 .map( p -> p.getName() ).toList();
         final List<String> STR_FAV_DIRS = FAV_PAIRS.stream()
                                                 .map(
                                                   p -> p.getPath().toString() )
+                                                .toList();
+        final List<String> STR_EXTS = FILE_ASSOCS.stream()
+                                                .map( p -> p.getKey().get() )
+                                                .toList();
+        final List<String> STR_APPS = FILE_ASSOCS.stream()
+                                                .map(
+                                                  p -> p.getValue().asCanonical() )
                                                 .toList();
         
         this.config.add( Config.Key.WIDTH, "" + WIN.getWidth() );
@@ -917,6 +955,10 @@ public class MainWindow extends Browser {
                                 STR_FAV_NAMES.toArray( String[]::new ) );
         this.config.addList( Config.Key.FAV_DIRS,
                                 STR_FAV_DIRS.toArray( String[]::new ) );
+        this.config.addList( Config.Key.EXTENSIONS,
+                                STR_EXTS.toArray( String[]::new ) );
+        this.config.addList(Config.Key.APP_PATHS,
+                                STR_APPS.toArray( String[]::new ) );
         this.config.save();
     }
      
@@ -934,8 +976,11 @@ public class MainWindow extends Browser {
     private final Action actionViewOutput;
     private final Action actionOpenShell;
 
+    private final TermPath termPath;
     private final LogWriter logViewer;
     private final Config config;
+    private final OpenerEngine openerEngine;
+    private boolean isBuild;
     
     private class KeyboardDispatcher implements KeyEventDispatcher {
         @Override

@@ -5,12 +5,12 @@ package com.devbaltasarq.frover.ui.components;
 
 
 import java.awt.BorderLayout;
-import java.awt.Button;
-import java.awt.Choice;
 import java.awt.Color;
 import java.awt.Font;
-import java.awt.Panel;
-import java.awt.TextField;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
@@ -24,7 +24,7 @@ import java.util.function.Consumer;
   * @see DirList
   * @author baltasarq
   */
-public class DirChoicePanel extends Panel {
+public class DirChoicePanel extends JPanel {
     public static final Color FG = Color.WHITE;
     public static final Color BG = Color.GRAY;
     public static final Font FONT_MONO_16 = Font.decode( "monospaced-16" );
@@ -37,15 +37,16 @@ public class DirChoicePanel extends Panel {
     public DirChoicePanel(Color fg, Color bg, Font font)
     {
         this.dirList = new PathList( fg, bg, font );
-        this.topDirs = new Choice();
-        this.btUp = new Button( ".." );
-        this.edCWD = new TextField();
-        this.btCopyCWD = new Button( "Copy" );
+        this.topDirs = new JComboBox();
+        this.btUp = new JButton( ".." );
+        this.edCWD = new JTextField();
+        this.btCopyCWD = new JButton( "Copy" );
         
         this.dirChanger = (p) -> {};
         this.cwdCopier = (p) -> {};
         this.lastSelectedIndex = 0;
         
+        this.syncing = false;
         this.build();
         this.buildListeners();
     }
@@ -57,8 +58,8 @@ public class DirChoicePanel extends Panel {
         final var LYB_1 = new BorderLayout();
         final var LYB_2 = new BorderLayout();
         final var LYB_3 = new BorderLayout();
-        final var PNL_FOR_UP = new Panel( LYB_2 );
-        final var PNL_FOR_CWD = new Panel( LYB_3 );
+        final var PNL_FOR_UP = new JPanel( LYB_2 );
+        final var PNL_FOR_CWD = new JPanel( LYB_3 );
         
         LYB_1.setHgap( 5 );
         LYB_1.setVgap( 5 );
@@ -69,6 +70,7 @@ public class DirChoicePanel extends Panel {
         
         // Top directories
         this.topDirs.setFont( FONT );
+        this.topDirs.setEditable( false );
                
         // Button up
         this.btUp.setFont( FONT );
@@ -76,7 +78,7 @@ public class DirChoicePanel extends Panel {
         PNL_FOR_UP.add( this.dirList, BorderLayout.CENTER );
         
         // CWD
-        final Panel PNL_FOR_COPY = new Panel( new BorderLayout() );
+        final var PNL_FOR_COPY = new JPanel( new BorderLayout() );
         this.edCWD.setFont( FONT );
         
         PNL_FOR_COPY.add( this.edCWD, BorderLayout.CENTER );
@@ -133,43 +135,49 @@ public class DirChoicePanel extends Panel {
     /** Change directory from the dir list. */
     private void doDirSelected()
     {
-        int dirPos = this.getDirList().getSelectedIndex();
-        
-        if ( dirPos >= 0 ) {
-            final Path PATH = this.getDirList().getPathAt( dirPos );
-            this.dirChanger.accept( PATH );
-            this.lastSelectedIndex = dirPos;
+        if ( !this.syncing ) {
+            int dirPos = this.getDirList().getSelectedIndex();
+
+            if ( dirPos >= 0 ) {
+                final Path PATH = this.getDirList().getPathAt( dirPos );
+                this.dirChanger.accept( PATH );
+                this.lastSelectedIndex = dirPos;
+            }
         }
     }
     
     /** Change the directory marked. */
     private void updateDirMarked()
     {
-        int dirPos = this.getDirList().getSelectedIndex();
-        
-        if ( dirPos >= 0 ) {
-            this.lastSelectedIndex = dirPos;
+        if ( !this.syncing ) {
+            int dirPos = this.getDirList().getSelectedIndex();
+
+            if ( dirPos >= 0 ) {
+                this.lastSelectedIndex = dirPos;
+            }
         }
     }
     
     /** Go to the previous directory */
     private void doGoUpDirSelected()
     {
-        this.dirChanger.accept( this.dirList.getCWD().getParent() );
+        if ( !this.syncing ) {
+            this.dirChanger.accept( this.dirList.getCWD().getParent() );
+        }
     }
     
     /** Go to the selected top dirs. */
     private void doTopDirSelected()
     {
-        final String DIR_SELECTED = this.topDirs.getSelectedItem();
+        if ( !this.syncing ) {
+            final String DIR_SELECTED = (String) this.topDirs.getSelectedItem();
 
-        if ( DIR_SELECTED != null
-          && !DIR_SELECTED.isBlank() )
-        {
-            this.dirChanger.accept( Path.of( DIR_SELECTED ) );
+            if ( DIR_SELECTED != null
+              && !DIR_SELECTED.isBlank() )
+            {
+                this.dirChanger.accept( Path.of( DIR_SELECTED ) );
+            }
         }
-
-        return;
     }
     
     /** Changes the listener for the directory change.
@@ -207,19 +215,25 @@ public class DirChoicePanel extends Panel {
     }
     
     /** @return the text field with the desired dir. */
-    public TextField getEdCWD()
+    public JTextField getEdCWD()
     {
         return this.edCWD;
     }
     
     /** @return the button for going up to parent directory. */
-    public Button getBtUp()
+    public JButton getBtUp()
     {
         return this.btUp;
     }
     
+    /** @return the button for copying the current path. */
+    public JButton getBtCopyCWDPath()
+    {
+        return this.btCopyCWD;
+    }
+    
     /** @return a choice with the top directories. */
-    public Choice getTopDirs()
+    public JComboBox getTopDirs()
     {
         return this.topDirs;
     }
@@ -232,20 +246,25 @@ public class DirChoicePanel extends Panel {
      */
     public void syncToDir(final Path DIR, final List<Path> SUB_DIRECTORIES)
     {
-        final Choice CH_TOP_DIRS = this.getTopDirs();
+        final JComboBox CH_TOP_DIRS = this.getTopDirs();
         final PathList DIR_LIST = this.getDirList();
         
+        this.syncing = true;
+        
         // Fill the top dirs choice
-        CH_TOP_DIRS.removeAll();
-        CH_TOP_DIRS.add( DIR.toString() );
+        CH_TOP_DIRS.setEnabled( false );
+        CH_TOP_DIRS.setEditable( false );
+        CH_TOP_DIRS.removeAllItems();
+        CH_TOP_DIRS.addItem( DIR.toString() );
         Path climber = DIR;
+        
         while( !climber.equals( DIR.getRoot() ) ) {
             climber = climber.getParent();
-            CH_TOP_DIRS.insert( climber.toString(), 0 );
+            CH_TOP_DIRS.insertItemAt( climber.toString(), 0 );
         }
         
         // Select last one
-        CH_TOP_DIRS.select( CH_TOP_DIRS.getItemCount() - 1 );   
+        CH_TOP_DIRS.setSelectedIndex( CH_TOP_DIRS.getItemCount() - 1 );   
         
         // Fill the CWD text field
         this.getEdCWD().setText( DIR.toString() );
@@ -263,15 +282,19 @@ public class DirChoicePanel extends Panel {
             DIR_LIST.select( this.lastSelectedIndex );
             DIR_LIST.makeVisible( this.lastSelectedIndex );
         }
+        
+        CH_TOP_DIRS.setEnabled( true );
+        this.syncing = false;
     }
     
     private final PathList dirList;
-    private final TextField edCWD;
-    private final Button btUp;
-    private final Button btCopyCWD;
-    private final Choice topDirs;
+    private final JTextField edCWD;
+    private final JButton btUp;
+    private final JButton btCopyCWD;
+    private final JComboBox topDirs;
     
     private int lastSelectedIndex;
+    private boolean syncing;
     private Consumer<Path> dirChanger;
     private Consumer<String> cwdCopier;
 }

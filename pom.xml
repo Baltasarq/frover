@@ -12,6 +12,7 @@
         <exec.mainClass>com.devbaltasarq.frover.Ppal</exec.mainClass>
         <maven.compiler.plugin.version>3.14.0</maven.compiler.plugin.version>
         <maven.jar.plugin.version>3.4.2</maven.jar.plugin.version>
+        <debug.enabled>true</debug.enabled> <!-- Default to debug -->
     </properties>
     
     <name>frover</name>
@@ -24,6 +25,13 @@
                 <includes>
                     <include>**/*</include>
                 </includes>
+            </resource>
+            <resource>
+                <directory>src/main/java</directory>
+                <includes>
+                    <include>**/*</include>
+                </includes>
+                <filtering>true</filtering>
             </resource>
         </resources>
         
@@ -97,4 +105,13 @@
             <version>2.13.2</version>
         </dependency>
     </dependencies>
+    
+    <profiles>
+        <profile>
+            <id>release</id>
+            <properties>
+                <debug.enabled>false</debug.enabled>
+            </properties>
+        </profile>
+</profiles>
 </project>

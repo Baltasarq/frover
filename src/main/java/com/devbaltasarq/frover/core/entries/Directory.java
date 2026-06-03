@@ -69,6 +69,12 @@ public class Directory extends Entry {
     }
     
     @Override
+    public Entry getContainer()
+    {
+        return this;
+    }
+    
+    @Override
     public void create() throws IOException
     {
         if ( !this.getFile().mkdirs() ) {

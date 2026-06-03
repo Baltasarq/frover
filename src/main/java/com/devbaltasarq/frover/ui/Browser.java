@@ -4,7 +4,7 @@
 package com.devbaltasarq.frover.ui;
 
 
-import com.devbaltasarq.frover.core.Cfg;
+import com.devbaltasarq.frover.core.ViewSettings;
 import com.devbaltasarq.frover.core.DirBrowser;
 import com.devbaltasarq.frover.core.Entry;
 import com.devbaltasarq.frover.core.entries.Directory;
@@ -24,10 +24,10 @@ import java.util.List;
 public abstract class Browser {
     protected Browser(BrowserView view)
     {
-        this( view, Cfg.get() );
+        this(view, ViewSettings.get() );
     }
     
-    protected Browser(BrowserView view, Cfg cfg)
+    protected Browser(BrowserView view, ViewSettings cfg)
     {
         this.view = view;
         this.cfg = cfg;
@@ -134,6 +134,6 @@ public abstract class Browser {
     }
     
     protected DirBrowser dirBrowser;
-    protected final Cfg cfg;
+    protected final ViewSettings cfg;
     protected final BrowserView view;
 }

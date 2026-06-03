@@ -8,6 +8,8 @@ package com.devbaltasarq.frover.core;
   * @author baltasarq
   */
 public class AppInfo {
+    public static final boolean DEBUG =
+                        "@debug.enabled@".trim().equalsIgnoreCase( "true" );
     public static final String NAME = "frover";
     public static final String VERSION = "0.2 20260208";
     public static final String WEB = "http://github.com/baltasarq/frover";

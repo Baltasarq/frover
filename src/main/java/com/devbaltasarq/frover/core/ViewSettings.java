@@ -7,7 +7,7 @@ package com.devbaltasarq.frover.core;
 /** Configuration for the directory browser.
   * @author baltasarq
   */
-public class Cfg {   
+public class ViewSettings {   
     public enum OutputPanelVisibility {
         HIDDEN( false ),
         SHOWN( true );
@@ -56,7 +56,7 @@ public class Cfg {
         private boolean val;
     }
     
-    protected Cfg()
+    protected ViewSettings()
     {
         this.setDefaults();
     }
@@ -96,10 +96,10 @@ public class Cfg {
         this.viewOutput = v;
     }
     
-    public static Cfg get()
+    public static ViewSettings get()
     {
         if ( cfgRepo == null ) {
-            cfgRepo = new Cfg();
+            cfgRepo = new ViewSettings();
         }
         
         return cfgRepo;
@@ -107,5 +107,5 @@ public class Cfg {
     
     private HiddenFilesVisibility showHiddenFiles;
     private OutputPanelVisibility viewOutput;
-    private static Cfg cfgRepo;
+    private static ViewSettings cfgRepo;
 }

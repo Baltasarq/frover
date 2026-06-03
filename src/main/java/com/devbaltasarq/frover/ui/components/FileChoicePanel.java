@@ -4,19 +4,20 @@
 package com.devbaltasarq.frover.ui.components;
 
 
-import java.awt.BorderLayout;
-import java.awt.Panel;
-import java.awt.Color;
-import java.awt.Font;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Consumer;
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Font;
+import javax.swing.JPanel;
 
 
 /** Represents a panel with capabilities for file selecting.
   * @author baltasarq
   */
-public class FileChoicePanel extends Panel {
+public class FileChoicePanel extends JPanel {
     public static final Color FG = Color.WHITE;
     public static final Color BG = Color.GRAY;
     public static final Font FONT_MONO_16 = Font.decode( "monospaced-16" );
@@ -60,7 +61,6 @@ public class FileChoicePanel extends Panel {
         if ( pos >= 0 ) {
             this.fileSelector.accept( this.fileList.getPathAt( pos ) );
             this.lastSelectedIndex = pos;
-            System.out.println( "File position selected: " + this.lastSelectedIndex );
         }
     }
     

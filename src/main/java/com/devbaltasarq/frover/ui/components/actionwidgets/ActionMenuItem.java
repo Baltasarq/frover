@@ -6,7 +6,7 @@ package com.devbaltasarq.frover.ui.components.actionwidgets;
 
 import com.devbaltasarq.frover.ui.components.*;
 
-import java.awt.MenuItem;
+import javax.swing.JMenuItem;
 
 
 /** Represents a Widget of the view.
@@ -14,7 +14,7 @@ import java.awt.MenuItem;
   * @author baltasarq
   */
 public class ActionMenuItem extends ActionWidget {
-    public ActionMenuItem(MenuItem mitem)
+    public ActionMenuItem(JMenuItem mitem)
     {
         super( mitem );
     }
@@ -46,8 +46,8 @@ public class ActionMenuItem extends ActionWidget {
 
     /** @return the menu item. */
     @Override
-    public MenuItem getWidget()
+    public JMenuItem getWidget()
     {
-        return (MenuItem) super.getWidget();
+        return (JMenuItem) super.getWidget();
     }
 }

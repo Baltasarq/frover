@@ -10,22 +10,27 @@ import com.devbaltasarq.frover.ui.components.VisitedDirChoicePanel;
 import com.devbaltasarq.frover.ui.components.FileChoicePanel;
 
 import java.net.URL;
+import java.util.Arrays;
+import java.util.List;
+
 import java.awt.Font;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Frame;
-import java.awt.Panel;
-import java.awt.TextField;
-import java.awt.Menu;
-import java.awt.Button;
-import java.awt.MenuBar;
-import java.awt.MenuItem;
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
-import java.awt.Label;
 import java.awt.Image;
-import java.awt.TextArea;
 import java.awt.Toolkit;
+
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+import javax.swing.JMenu;
+import javax.swing.JButton;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JLabel;
+import javax.swing.JSplitPane;
+import javax.swing.JTextArea;
 
 
 /** App's main window
@@ -37,12 +42,19 @@ public class MainWindowView extends BrowserView {
     private static final String ETQ_ICON_APP = "icon.png";
     private static final String ETQ_ICON_DIR_UP = "dir_up.png";
     
+    /** Relation of buttons in the view. */
+    public enum Buttons {
+                    BtHelp, BtRename, BtCopy,
+                    BtDelete, BtView, BtCopyCWDPath,
+                    BtDirUp, BtExe,
+                    BtNewFav, BtDelFav };
+    
     public MainWindowView()
     {
-        this( new Frame() );
+        this( new JFrame() );
     }
     
-    public MainWindowView(final Frame FRAME)
+    public MainWindowView(final JFrame FRAME)
     {
         super( FRAME );
         
@@ -56,33 +68,38 @@ public class MainWindowView extends BrowserView {
     {
         final var LYB = (BorderLayout) this.getWindow().getLayout();
         final var LY_TOOLBAR = new BorderLayout();
-        final var LY_OUTPUT = new BorderLayout();
         final var LY_CMDBAR = new BorderLayout();
-        final var PNL_OUTPUT = new Panel( LY_TOOLBAR );
-        final var PNL_TOOLBAR = new Panel( LY_OUTPUT );
-        final var PNL_CMDBAR = new Panel( LY_CMDBAR );
-        final var PNL_MAIN = new Panel( new GridLayout( 1, 2 ) );
+        final var PNL_TOOLBAR = new JPanel( LY_TOOLBAR );
+        final var PNL_CMDBAR = new JPanel( LY_CMDBAR );
+        final var PNL_MAIN = new JPanel( new GridLayout( 1, 3 ) );
+        
+        this.mainVsOutputPanel = new JSplitPane();
+        this.buttons = new JButton[ Buttons.values().length ];
         
         this.buildIcons();
-        this.getFrame().setMenuBar( this.buildMenu() );
+        this.getFrame().setJMenuBar( this.buildMenu() );
         
         LYB.setHgap( 5 );
         LYB.setVgap( 5 );
         LY_TOOLBAR.setHgap( 5 );
         LY_TOOLBAR.setVgap( 5 );
-        LY_OUTPUT.setHgap( 5 );
-        LY_OUTPUT.setVgap( 5 );
         LY_CMDBAR.setHgap( 5 );
         LY_CMDBAR.setVgap( 5 );
         
+        PNL_MAIN.add( this.buildFavDirectoryChoice() );
         PNL_MAIN.add( this.buildDirChoice() );
         PNL_MAIN.add( this.buildFileChoice() );
+        this.buttons[ Buttons.BtDirUp.ordinal() ] = this.pnlChoiceDir.getBtUp();
+        this.buttons[ Buttons.BtCopyCWDPath.ordinal() ] =
+                                this.pnlChoiceDir.getBtCopyCWDPath();
         
-        PNL_OUTPUT.add( this.buildLogViewer(), BorderLayout.PAGE_END );
-        PNL_OUTPUT.add( PNL_MAIN, BorderLayout.CENTER );
-        PNL_OUTPUT.add( this.buildFavDirectoryChoice(), BorderLayout.LINE_START );
+        this.mainVsOutputPanel.setOrientation(JSplitPane.VERTICAL_SPLIT );
+        this.mainVsOutputPanel.setBottomComponent( this.buildOutputViewer() );
+        this.mainVsOutputPanel.setTopComponent( PNL_MAIN );
+        this.buttons[ Buttons.BtNewFav.ordinal() ] = this.pnlChoiceFavDir.getBtNew();
+        this.buttons[ Buttons.BtDelFav.ordinal() ] = this.pnlChoiceFavDir.getBtRemove();
                 
-        PNL_CMDBAR.add( PNL_OUTPUT, BorderLayout.CENTER );
+        PNL_CMDBAR.add( this.mainVsOutputPanel, BorderLayout.CENTER );
         PNL_CMDBAR.add( this.buildCmdBar(), BorderLayout.PAGE_END );
         
         PNL_TOOLBAR.add( PNL_CMDBAR, BorderLayout.CENTER );
@@ -92,9 +109,21 @@ public class MainWindowView extends BrowserView {
         this.getWindow().add( this.buildStatusBar(), BorderLayout.PAGE_END );
         this.getWindow().setIconImage( this.iconApp );
         this.getWindow().pack();
+        this.chkButtons();
     }
     
-        /** Retrieves icons from jar for future use */
+    private void chkButtons()
+    {
+        for(Buttons btId: Buttons.values()) {
+            if ( this.buttons[ btId.ordinal() ] == null ) {
+                throw new Error(
+                        String.format( "Button '%s' is null!!",
+                                        btId.toString() ) );
+            }
+        }
+    }
+    
+    /** Retrieves icons from jar for future use */
     private void buildIcons()
     {
         try {
@@ -111,13 +140,13 @@ public class MainWindowView extends BrowserView {
         }
     }
     
-    private Panel buildLogViewer()
+    private JPanel buildOutputViewer()
     {
         final var LY_TOOLBAR = new BorderLayout();
-        final var PANEL = new Panel( LY_TOOLBAR );
+        final var PANEL = new JPanel( LY_TOOLBAR );
         final var FONT = new Font( Font.MONOSPACED, Font.PLAIN, 12 );
 
-        this.logViewer = new TextArea();
+        this.logViewer = new JTextArea();
         this.logViewer.setEditable( false );
         this.logViewer.setFont( FONT );
         this.logViewer.setBackground( Color.BLACK );
@@ -129,52 +158,61 @@ public class MainWindowView extends BrowserView {
         return PANEL;
     }
     
-    private Panel buildToolbar()
+    private JPanel buildToolbar()
     {
-        var font = Font.decode( "monospaced-14" );
+        final var FONT = Font.decode( "monospaced-14" );
+        int btHelpPos = Buttons.BtHelp.ordinal();
+        int btRenamePos = Buttons.BtRename.ordinal();
+        int btCopyPos = Buttons.BtCopy.ordinal();
+        int btDeletePos = Buttons.BtDelete.ordinal();
+        int btViewPos = Buttons.BtView.ordinal();
         
-        this.btHelp = new Button( "F1 Help" );
-        this.btHelp.setFont( font );
-        this.btHelp.setForeground( Color.BLUE );
-        this.btHelp.setBackground( Color.WHITE );
+        this.buttons[ btHelpPos ] = new JButton( "F1 Help" );
+        this.buttons[ btHelpPos ].setFont( FONT );
+        this.buttons[ btHelpPos ].setForeground( Color.BLUE );
+        this.buttons[ btHelpPos ].setBackground( Color.WHITE );
 
-        this.btRename = new Button( "F2 Rename" );
-        this.btRename.setFont( font );
-        this.btRename.setForeground( Color.BLUE );
-        this.btRename.setBackground( Color.WHITE );
+        this.buttons[ btRenamePos ] = new JButton( "F2 Rename" );
+        this.buttons[ btRenamePos ].setFont( FONT );
+        this.buttons[ btRenamePos ].setForeground( Color.BLUE );
+        this.buttons[ btRenamePos ].setBackground( Color.WHITE );
 
-        this.btCopy = new Button( "Ctrl+C Copy" );
-        this.btCopy.setFont( font );
-        this.btCopy.setForeground( Color.BLUE );
-        this.btCopy.setBackground( Color.WHITE );
+        this.buttons[ btCopyPos ] = new JButton( "Ctrl+C Copy" );
+        this.buttons[ btCopyPos ].setFont( FONT );
+        this.buttons[ btCopyPos ].setForeground( Color.BLUE );
+        this.buttons[ btCopyPos ].setBackground( Color.WHITE );
         
-        this.btDelete = new Button( "Ctrl+Del Delete" );
-        this.btDelete.setFont( font );
-        this.btDelete.setForeground( Color.BLUE );
-        this.btDelete.setBackground( Color.WHITE );
+        this.buttons[ btDeletePos ] = new JButton( "Ctrl+Del Delete" );
+        this.buttons[ btDeletePos ].setFont( FONT );
+        this.buttons[ btDeletePos ].setForeground( Color.BLUE );
+        this.buttons[ btDeletePos ].setBackground( Color.WHITE );
         
-        this.btView = new Button( "F5 View" );
-        this.btView.setFont( font );
-        this.btView.setForeground( Color.BLUE );
-        this.btView.setBackground( Color.WHITE );
+        this.buttons[ btViewPos ] = new JButton( "F5 View" );
+        this.buttons[ btViewPos ].setFont( FONT );
+        this.buttons[ btViewPos ].setForeground( Color.BLUE );
+        this.buttons[ btViewPos ].setBackground( Color.WHITE );
         
-        final Button[] BUTTONS = {
-            this.btHelp, this.btRename, this.btCopy,
-            this.btDelete, this.btView
+        // Relate all buttons that will appear in the toolbar.
+        final JButton[] BUTTONS = {
+            this.buttons[ btHelpPos ], this.buttons[ btRenamePos ],
+            this.buttons[ btCopyPos ], this.buttons[ btDeletePos ],
+            this.buttons[ btViewPos ]
         };
-
-        this.pnlToolbar = new Panel( new GridLayout( 1, BUTTONS.length ) );
-        this.pnlToolbar.setFocusable( false );
-        this.pnlToolbar.add( this.btHelp );
-        this.pnlToolbar.add( this.btRename );
-        this.pnlToolbar.add( this.btCopy );
-        this.pnlToolbar.add( this.btDelete );
-        this.pnlToolbar.add( this.btView );
         
+        final var GRID = new GridLayout( 1, BUTTONS.length );
+
+        GRID.setHgap( 10 );
+        this.pnlToolbar = new JPanel( GRID );
+        this.pnlToolbar.setFocusable( false );
+        
+        for(final JButton BT: BUTTONS) {
+            this.pnlToolbar.add( BT );
+        }
+
         return this.pnlToolbar;
     }
     
-    private Panel buildFavDirectoryChoice()
+    private JPanel buildFavDirectoryChoice()
     {
         this.pnlChoiceFavDir = new VisitedDirChoicePanel(
                                     Color.WHITE,
@@ -183,34 +221,34 @@ public class MainWindowView extends BrowserView {
         return this.pnlChoiceFavDir;
     }
     
-    private Panel buildFileChoice()
+    private JPanel buildFileChoice()
     {      
         this.pnlChoiceFile = new FileChoicePanel();
         return this.pnlChoiceFile;
     }
     
-    private Panel buildDirChoice()
+    private JPanel buildDirChoice()
     {
         this.pnlChoiceDir = new DirChoicePanel();
         return this.pnlChoiceDir;
     }
     
-    private MenuBar buildMenu()
+    private JMenuBar buildMenu()
     {        
-        this.mbMainMenu = new MenuBar();
-        this.mFile = new Menu( "File" );
-        this.opQuit = new MenuItem( "Quit" );
+        this.mbMainMenu = new JMenuBar();
+        this.mFile = new JMenu( "File" );
+        this.opQuit = new JMenuItem( "Quit" );
         this.mFile.add( opQuit );
         
-        this.mEdit = new Menu( "Edit" );
-        this.opNew = new MenuItem( "New" );
-        this.opRename = new MenuItem( "Rename" );
-        this.opCopy = new MenuItem( "Copy" );
-        this.opMove = new MenuItem( "Move" );
-        this.opDelete = new MenuItem( "Delete" );
-        this.opView = new MenuItem( "View" );
-        this.opRefresh = new MenuItem( "Refresh" );
-        this.opShowHidden = new MenuItem( "Show hidden" );
+        this.mEdit = new JMenu( "Edit" );
+        this.opNew = new JMenuItem( "New" );
+        this.opRename = new JMenuItem( "Rename" );
+        this.opCopy = new JMenuItem( "Copy" );
+        this.opMove = new JMenuItem( "Move" );
+        this.opDelete = new JMenuItem( "Delete" );
+        this.opView = new JMenuItem( "View" );
+        this.opRefresh = new JMenuItem( "Refresh" );
+        this.opShowHidden = new JMenuItem( "Show hidden" );
         
         this.mEdit.add( this.opNew );
         this.mEdit.add( this.opView );
@@ -220,18 +258,18 @@ public class MainWindowView extends BrowserView {
         this.mEdit.add( this.opDelete );
         this.mEdit.add( this.opShowHidden );
         
-        this.mView = new Menu( "View" );
-        this.opViewOutput = new MenuItem( "View output" );
+        this.mView = new JMenu( "View" );
+        this.opViewOutput = new JMenuItem( "View output" );
         this.mView.add( this.opRefresh );
         this.mView.add( this.opViewOutput );
         
-        this.mTools = new Menu( "Tools" );
-        this.opOpenShell = new MenuItem( "Open in shell" );
+        this.mTools = new JMenu( "Tools" );
+        this.opOpenShell = new JMenuItem( "Open in shell" );
         this.mTools.add( this.opOpenShell );
         
-        this.mHelp = new Menu( "Help" );
-        this.opAbout = new MenuItem( "About" );
-        this.opHelp = new MenuItem( "Help" );
+        this.mHelp = new JMenu( "Help" );
+        this.opAbout = new JMenuItem( "About" );
+        this.opHelp = new JMenuItem( "Help" );
         this.mHelp.add( this.opHelp );
         this.mHelp.add( this.opAbout );
         
@@ -244,35 +282,36 @@ public class MainWindowView extends BrowserView {
         return this.mbMainMenu;
     }
     
-    private Panel buildCmdBar()
+    private JPanel buildCmdBar()
     {
         final var FONT = new Font( Font.MONOSPACED, Font.PLAIN, 14 );
         final var FONT_LBL = new Font( Font.MONOSPACED, Font.BOLD, 18 );
         final var LY_CMD = new BorderLayout();
-        final var PNL_CMD_BAR = new Panel( LY_CMD );
-        final var LBL_PROMPT = new Label( ">" );
+        final var PNL_CMD_BAR = new JPanel( LY_CMD );
+        final var LBL_PROMPT = new JLabel( ">" );
+        final int btExePos = Buttons.BtExe.ordinal();
         
         LBL_PROMPT.setFont( FONT_LBL );
         LY_CMD.setHgap( 5 );
         LY_CMD.setVgap( 5 );
         
-        this.edCmd = new TextField();
+        this.edCmd = new JTextField();
         this.edCmd.setBackground(Color.BLACK );
         this.edCmd.setForeground( Color.WHITE );
         this.edCmd.setFont( FONT );
         
-        this.btExe = new Button( "DoIt" );
+        this.buttons[ btExePos ] = new JButton( "DoIt" );
         
         PNL_CMD_BAR.add( LBL_PROMPT, BorderLayout.LINE_START );
         PNL_CMD_BAR.add( this.edCmd, BorderLayout.CENTER );
-        PNL_CMD_BAR.add( this.btExe, BorderLayout.LINE_END );
+        PNL_CMD_BAR.add( this.buttons[ btExePos ], BorderLayout.LINE_END );
         
         return PNL_CMD_BAR;
     }
     
-    private TextField buildStatusBar()
+    private JTextField buildStatusBar()
     {
-        this.sbStatus = new TextField();
+        this.sbStatus = new JTextField();
         this.sbStatus.setEditable( false );
         this.sbStatus.setFocusable( false );
         
@@ -280,147 +319,120 @@ public class MainWindowView extends BrowserView {
     }
         
     /** @return the frame of this window view. */
-    public final Frame getFrame()
+    public final JFrame getFrame()
     {
-        return (Frame) super.getWindow();
+        return (JFrame) super.getWindow();
     }
     
     /** @return the Help >> about option. */
-    public MenuItem getOpAbout()
+    public JMenuItem getOpAbout()
     {
         return this.opAbout;
     }
     
     /** @return the File >> quit option. */
-    public MenuItem getOpQuit()
+    public JMenuItem getOpQuit()
     {
         return this.opQuit;
     }
     
     /** @return the Edit >> view option. */
-    public MenuItem getOpView()
+    public JMenuItem getOpView()
     {
         return this.opView;
     }
     
     /** @return the Edit >> new option. */
-    public MenuItem getOpNew()
+    public JMenuItem getOpNew()
     {
         return this.opNew;
     }
     
     /** @return the Edit >> rename option. */
-    public MenuItem getOpRename()
+    public JMenuItem getOpRename()
     {
         return this.opRename;
     }
     
     /** @return the Edit >> copy option. */
-    public MenuItem getOpCopy()
+    public JMenuItem getOpCopy()
     {
         return this.opCopy;
     }
     
     /** @return the Edit >> move option. */
-    public MenuItem getOpMove()
+    public JMenuItem getOpMove()
     {
         return this.opMove;
     }
     
     /** @return the Edit >> move option. */
-    public MenuItem getOpDelete()
+    public JMenuItem getOpDelete()
     {
         return this.opDelete;
     }
     
     /** @return the Edit >> show hidden option. */
-    public MenuItem getOpShowHidden()
+    public JMenuItem getOpShowHidden()
     {
         return this.opShowHidden;
     }
     
     /** @return the View >> Refresh option. */
-    public MenuItem getOpRefresh()
+    public JMenuItem getOpRefresh()
     {
         return this.opRefresh;
     }
     
     /** @return the Tools >> Open Shell option. */
-    public MenuItem getOpShell()
+    public JMenuItem getOpShell()
     {
         return this.opOpenShell;
     }
     
     /** @return the View >> View output option. */
-    public MenuItem getOpViewOutput()
+    public JMenuItem getOpViewOutput()
     {
         return this.opViewOutput;
     }
     
     /** @return the menu item for help >> help. */
-    public MenuItem getOpHelp()
+    public JMenuItem getOpHelp()
     {
         return this.opHelp;
     }
     
     /** @return the text field that acts as a status bar. */
-    public TextField getStatusBar()
+    public JTextField getStatusBar()
     {
         return this.sbStatus;
     }
     
     /** @return the text area that acts as output. */
-    public TextArea getLogViewer()
+    public JTextArea getLogViewer()
     {
         return this.logViewer;
     }
-    
-    /** @return the button in the toolbar for help. */
-    public Button getHelpButton()
-    {
-        return this.btHelp;
-    }
-    
-    /** @return the button in the toolbar for rename. */
-    public Button getRenameButton()
-    {
-        return this.btRename;
-    }
-    
-    /** @return the button in the toolbar for copy. */
-    public Button getCopyButton()
-    {
-        return this.btCopy;
-    }
-    
-    /** @return the button in the toolbar for move. */
-    public Button getMoveButton()
-    {
-        return this.btDelete;
-    }
-    
-    /** @return the button in the toolbar for view. */
-    public Button getViewButton()
-    {
-        return this.btView;
-    }
-    
-    /** @return the button in the toolbar for rename. */
-    public Button getDeleteButton()
-    {
-        return this.btDelete;
-    }
-    
+  
     /** @return the text field for a command. */
-    public TextField getEdCmd()
+    public JTextField getEdCmd()
     {
         return this.edCmd;
     }
     
-    /** @return the button for triggering a command. */
-    public Button getBtExe()
+    /** @return the button, given the id.
+      * @param bt the id of the button.
+      * @see MainWindowView::Button
+      */
+    public JButton getButton(Buttons bt)
     {
-        return this.btExe;
+        return this.buttons[ bt.ordinal() ];
+    }
+    
+    /** @return a list with all the available buttons. */
+    public List<JButton> getAllButtons()
+    {
+        return Arrays.asList( this.buttons );
     }
     
     /** @return the widget for the list of visited directories. */
@@ -442,39 +454,41 @@ public class MainWindowView extends BrowserView {
     {
         return this.pnlChoiceFile;
     }
-        
+    
+    /** @return the split panel between main and output. */
+    public JSplitPane getSplitPanel()
+    {
+        return this.mainVsOutputPanel;
+    }
+    
     private FileChoicePanel pnlChoiceFile;
     private DirChoicePanel pnlChoiceDir;
     private VisitedDirChoicePanel pnlChoiceFavDir;
-    private Panel pnlToolbar;
-    private TextField edCmd;
-    private TextField sbStatus;
-    private TextArea logViewer;
-    private Menu mFile;
-    private Menu mEdit;
-    private Menu mView;
-    private Menu mTools;
-    private Menu mHelp;
-    private MenuBar mbMainMenu;
-    private MenuItem opQuit;
-    private MenuItem opView;
-    private MenuItem opNew;
-    private MenuItem opRename;
-    private MenuItem opCopy;
-    private MenuItem opMove;
-    private MenuItem opDelete;
-    private MenuItem opRefresh;
-    private MenuItem opShowHidden;
-    private MenuItem opViewOutput;
-    private MenuItem opHelp;
-    private MenuItem opAbout;
-    private MenuItem opOpenShell;
-    private Button btView;
-    private Button btRename;
-    private Button btCopy;
-    private Button btDelete;
-    private Button btHelp;
-    private Button btExe;
+    private JSplitPane mainVsOutputPanel;
+    private JPanel pnlToolbar;
+    private JTextField edCmd;
+    private JTextField sbStatus;
+    private JTextArea logViewer;
+    private JMenu mFile;
+    private JMenu mEdit;
+    private JMenu mView;
+    private JMenu mTools;
+    private JMenu mHelp;
+    private JButton[] buttons;
+    private JMenuBar mbMainMenu;
+    private JMenuItem opQuit;
+    private JMenuItem opView;
+    private JMenuItem opNew;
+    private JMenuItem opRename;
+    private JMenuItem opCopy;
+    private JMenuItem opMove;
+    private JMenuItem opDelete;
+    private JMenuItem opRefresh;
+    private JMenuItem opShowHidden;
+    private JMenuItem opViewOutput;
+    private JMenuItem opHelp;
+    private JMenuItem opAbout;
+    private JMenuItem opOpenShell;
     private Image iconApp;
     private Image iconDirUp;
 }

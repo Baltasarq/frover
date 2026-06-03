@@ -16,7 +16,6 @@ public abstract class BrowserView {
     protected BrowserView(Window view)
     {
         this.view = view;
-        this.view.setLocationRelativeTo( view );
     }
     
     /** The view stored.

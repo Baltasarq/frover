@@ -4,10 +4,10 @@
 package com.devbaltasarq.frover.ui;
 
 
+import com.devbaltasarq.frover.ui.components.ActionWidget;
+
 import java.util.List;
 import java.util.ArrayList;
-
-import com.devbaltasarq.frover.ui.components.ActionWidget;
 
 
 /** An Action that involves multiple widgets.

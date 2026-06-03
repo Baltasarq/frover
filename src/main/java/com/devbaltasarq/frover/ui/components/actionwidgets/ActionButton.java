@@ -6,7 +6,7 @@ package com.devbaltasarq.frover.ui.components.actionwidgets;
 
 import com.devbaltasarq.frover.ui.components.*;
 
-import java.awt.Button;
+import javax.swing.JButton;
 
 
 /** Represents a Widget of the view.
@@ -14,7 +14,7 @@ import java.awt.Button;
   * @author baltasarq
   */
 public class ActionButton extends ActionWidget {
-    public ActionButton(Button button)
+    public ActionButton(JButton button)
     {
         super( button );
     }
@@ -43,8 +43,8 @@ public class ActionButton extends ActionWidget {
 
     /** @return the button. */
     @Override
-    public Button getWidget()
+    public JButton getWidget()
     {
-        return (Button) super.getWidget();
+        return (JButton) super.getWidget();
     }
 }

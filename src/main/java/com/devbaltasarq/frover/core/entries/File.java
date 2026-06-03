@@ -52,6 +52,12 @@ public class File extends Entry {
         }
     }
     
+    @Override
+    public Entry getContainer()
+    {
+        return Entry.from( Path.of( this.getParentPath() ) );
+    }
+    
     /** Creates a target file if the target is a dir.
       * So, if the org file is temp.txt, and the target is foo/,
       * then the target becomes foo/temp.txt.

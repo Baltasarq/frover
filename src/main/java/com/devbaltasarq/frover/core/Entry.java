@@ -17,7 +17,7 @@ import com.devbaltasarq.frover.core.entries.File;
   * @author baltasarq
   */
 public abstract class Entry {
-    public Entry(Path path)
+    protected Entry(Path path)
     {
         this.p = path;
         this.f = path.toFile();
@@ -118,6 +118,12 @@ public abstract class Entry {
       */
     public abstract void create() throws IOException;
     
+    /** @return an Entry object representing irs container,
+      * i.e., the object itself if this is a directory,
+      * or a new Directory object for the parent of this file.
+      */
+    public abstract Entry getContainer();
+    
     /** Renames the entry to a new name, same path.
       * @param newName the new name for the entry.
       * @throws IOException if the name is empty, or renaming fails.
@@ -170,6 +176,11 @@ public abstract class Entry {
         }
         
         return toret;
+    }
+    
+    public static Entry from(Path p)
+    {
+        return from( p.toFile() );
     }
     
     private final Path p;

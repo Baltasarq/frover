@@ -1,17 +1,11 @@
 // frover (c) 2025 Baltasar MIT License <baltasarq@gmail.com>
 
 
-package com.devbaltasarq.frover.ui.box;
+package com.devbaltasarq.frover.ui.dlg;
 
 
-import java.awt.Dialog;
-import java.awt.Window;
-import java.awt.Panel;
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
-import java.awt.Button;
-import java.awt.Label;
-import java.awt.TextField;
 import java.awt.Font;
 import java.awt.Dimension;
 import java.awt.event.KeyEvent;
@@ -19,11 +13,18 @@ import java.awt.event.KeyListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JTextField;
+
 
 /** Represents a dialog box.
   * @author baltasarq
   */
-public class InputBox extends Dialog {
+public class InputDlg extends JDialog {
     private static final Dimension MIN_SIZE = new Dimension( 300, 200 );
     
     /** Creates a dialog with a title, a message, and an Ok button.
@@ -34,7 +35,7 @@ public class InputBox extends Dialog {
       * @param selectionStart the start of the selected text.
       * @param selectionEnd the end of the selected text.
       */
-    public InputBox(Window owner,
+    public InputDlg(JFrame owner,
                     String title,
                     String message,
                     String initText,
@@ -61,13 +62,14 @@ public class InputBox extends Dialog {
       * @param message the given message of the dialog.
       * @param initText the inital text in the text field.
       */
-    public InputBox(Window owner, String title, String message, String initText)
+    public InputDlg(JFrame owner, String title, String message, String initText)
     {
-        super( owner, title, Dialog.ModalityType.APPLICATION_MODAL );
+        super( owner, title, JDialog.ModalityType.APPLICATION_MODAL );
+        
         this.message = message;
-        this.edValue = new TextField( initText );
-        this.btOk = new Button( "Ok" );
-        this.btCancel = new Button( "Cancel" );
+        this.edValue = new JTextField( initText );
+        this.btOk = new JButton( "Ok" );
+        this.btCancel = new JButton( "Cancel" );
         this.answer = null;
         
         this.build();
@@ -77,7 +79,7 @@ public class InputBox extends Dialog {
             @Override
             public void windowClosing(WindowEvent we)
             {
-                InputBox.this.doClose( false );
+                InputDlg.this.doClose( false );
             }
         });
         
@@ -91,9 +93,9 @@ public class InputBox extends Dialog {
         final var LY = new BorderLayout();
         final var LY_INNER = new BorderLayout();
         final var LY_BUTTONS = new GridLayout( 1, 4 );
-        final var PNL_INNER = new Panel( LY_INNER );
-        final var PNL_BUTTONS = new Panel( LY_BUTTONS );
-        final var LBL_MESSAGE = new Label( this.message );
+        final var PNL_INNER = new JPanel( LY_INNER );
+        final var PNL_BUTTONS = new JPanel( LY_BUTTONS );
+        final var LBL_MESSAGE = new JLabel( this.message );
                 
         LBL_MESSAGE.setFont( FONT );
         LY.setHgap( 5 );
@@ -108,12 +110,12 @@ public class InputBox extends Dialog {
         PNL_INNER.add( LBL_MESSAGE, BorderLayout.NORTH  );
         PNL_INNER.add( this.edValue, BorderLayout.SOUTH );
         
-        PNL_BUTTONS.add( new Panel() );
-        PNL_BUTTONS.add( new Panel() );
+        PNL_BUTTONS.add( new JPanel() );
+        PNL_BUTTONS.add( new JPanel() );
         PNL_BUTTONS.add( this.btCancel );
         PNL_BUTTONS.add( this.btOk );
 
-        this.edValue.addKeyListener( new KeyListener() {
+        this.edValue.addKeyListener(new KeyListener() {
             @Override
             public void keyTyped(KeyEvent evt)
             {
@@ -128,11 +130,11 @@ public class InputBox extends Dialog {
             public void keyPressed(KeyEvent evt)
             {
                 if ( evt.getKeyCode() == KeyEvent.VK_ESCAPE ) {
-                    InputBox.this.doClose( false );
+                    InputDlg.this.doClose( false );
                 }
                 else
                 if ( evt.getKeyCode() == KeyEvent.VK_ENTER ) {
-                    InputBox.this.doClose( true );
+                    InputDlg.this.doClose( true );
                 }
             }
         });
@@ -186,9 +188,9 @@ public class InputBox extends Dialog {
         return this.answer;
     }
     
-    private final Button btOk;
-    private final Button btCancel;
-    private final TextField edValue;
+    private final JButton btOk;
+    private final JButton btCancel;
+    private final JTextField edValue;
     private final String message;
     private String answer;
 }
