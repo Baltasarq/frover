@@ -155,7 +155,7 @@ public abstract class Entry {
         return toret;
     }
     
-    /** @return the corresponding Entry to the given f.
+    /** @return the corresponding Entry to the given f, or null if f is null.
       * @param f a java.io.File.
       * @see com.devbaltasarq.frover.core.entries.File
       * @see com.devbaltasarq.frover.core.entries.Directory
@@ -163,16 +163,18 @@ public abstract class Entry {
       */
     public static Entry from(java.io.File f)
     {
-        Entry toret;
+        Entry toret = null;
         
-        if ( f.isDirectory() ) {
-            try {
-                toret = new Directory( f.toPath() );
-            } catch(IOException exc) {
-                toret = null;       // ignored -- can't be thrown
+        if ( f != null ) {
+            if ( f.isDirectory() ) {
+                try {
+                    toret = new Directory( f.toPath() );
+                } catch(IOException exc) {
+                    toret = null;       // ignored -- can't be thrown
+                }
+            } else {
+                toret = new File( f.toPath() );
             }
-        } else {
-            toret = new File( f.toPath() );
         }
         
         return toret;
@@ -180,7 +182,13 @@ public abstract class Entry {
     
     public static Entry from(Path p)
     {
-        return from( p.toFile() );
+        Entry toret = null;
+        
+        if ( p != null ) {
+            toret = from( p.toFile() );
+        }
+        
+        return toret;
     }
     
     private final Path p;
