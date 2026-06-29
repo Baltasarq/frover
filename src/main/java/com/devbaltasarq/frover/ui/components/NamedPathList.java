@@ -11,12 +11,13 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
+import javax.swing.DefaultListModel;
 
 
 /** A path list in which each directory is identified by a name.
   * @author baltasarq
   */
-public class NamedPathList extends java.awt.List implements PathChoice {
+public class NamedPathList extends javax.swing.JList implements PathChoice {
     public static final Color FG = Color.WHITE;
     public static final Color BG = Color.GRAY;
     public static final Font FONT_MONO_16 = Font.decode( "monospaced-16" );
@@ -37,9 +38,9 @@ public class NamedPathList extends java.awt.List implements PathChoice {
         this.setBackground( bg );
         this.setFont( font );
         this.namesToPaths = new HashMap<>();
+        super.setModel( new DefaultListModel<String>() );
     }
     
-    @Override
     public void add(String path)
     {
         final Path PATH = Path.of( path );
@@ -48,8 +49,7 @@ public class NamedPathList extends java.awt.List implements PathChoice {
         this.add( new NamedPath( NAME, PATH ) );
     }
     
-    @Override
-    public void add(String path, int row)
+    public void add(int row, String path)
     {
         final Path PATH = Path.of( path );
         final String NAME = PATH.getFileName().toString();
@@ -66,7 +66,7 @@ public class NamedPathList extends java.awt.List implements PathChoice {
     /** @return the number of items in the list. */
     public int count()
     {
-        return super.getItemCount();
+        return super.getModel().getSize();
     }
     
     /** @return the current list of names, sorted. */
@@ -87,10 +87,11 @@ public class NamedPathList extends java.awt.List implements PathChoice {
     private void updateList()
     {
         final List<String> SORTED_NAMES = this.sortNames();
+        final var MODEL = (DefaultListModel<String>) super.getModel();
         
-        super.removeAll();
+        MODEL.removeAllElements();
         for(final String NAME: SORTED_NAMES) {
-            super.add( NAME );
+            MODEL.addElement( NAME );
         }        
     }
     
@@ -108,7 +109,7 @@ public class NamedPathList extends java.awt.List implements PathChoice {
       */
     public void removePathAt(int row)
     {
-        final String NAME = this.getItem( row );
+        final String NAME = (String) super.getModel().getElementAt( row );
         
         super.remove( row );
         this.namesToPaths.remove( NAME );
@@ -118,11 +119,12 @@ public class NamedPathList extends java.awt.List implements PathChoice {
       * @param row the row index of the item.
       * @return the corresponding path.
       */
+    @Override
     public Path getPathAt(int row)
     {
         assert row > 0 && row < this.count():  "invalid row: " + row;
         
-        final String NAME = super.getItem( row );
+        final String NAME = (String) super.getModel().getElementAt( row );
         final Path TORET = this.namesToPaths.get( NAME );
         
         if ( TORET == null ) {
@@ -133,10 +135,11 @@ public class NamedPathList extends java.awt.List implements PathChoice {
     }
 
     /** Removes all the paths in the list. */
-    @Override
-    public void removeAll()
+    public void removeAllPaths()
     {
-        super.removeAll();
+        final var MODEL = (DefaultListModel<String>) super.getModel();
+        
+        MODEL.removeAllElements();
         this.namesToPaths.clear();
     }
     

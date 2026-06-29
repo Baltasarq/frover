@@ -6,16 +6,19 @@ package com.devbaltasarq.frover.ui.components;
 
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import javax.swing.DefaultListModel;
 
 
 /** A panel showing a list of files.
   * @author baltasarq
   */
-public class PathList extends java.awt.List implements PathChoice {
+public class PathList extends javax.swing.JList implements PathChoice {
     public static final Color FG = Color.WHITE;
     public static final Color BG = Color.GRAY;
     public static final Font FONT_MONO_16 = Font.decode( "monospaced-16" );
@@ -36,6 +39,8 @@ public class PathList extends java.awt.List implements PathChoice {
         this.setForeground( fg );
         this.setBackground( bg );
         this.setFont( font );
+        this.setModel( new DefaultListModel<String>() );
+        this.lastSelectedIndex = 0;
     }
     
     /** Sets the CWD, since maybe there are no paths in this list...
@@ -66,21 +71,34 @@ public class PathList extends java.awt.List implements PathChoice {
     /** @return the number of paths in the list. */
     public int count()
     {
-        return this.getItemCount();
+        return super.getModel().getSize();
+    }
+    
+    /** Modify the path at a given position.
+      * @param pos the position.
+      * @param path the new path.
+      */
+    public void modifyPathAt(int pos, Path path)
+    {
+        final var MODEL = (DefaultListModel<String>) super.getModel();
+        
+        MODEL.setElementAt( path.toString(), pos );
     }
     
     /** @return the path at a given pos in the list.
       * @param row the position to retrieve the file from.
       */
+    @Override
     public Path getPathAt(int row)
     {
-        return this.pathFromEntryName( this.getItem( row ));
+        return this.pathFromEntryName( (String) super.getModel().getElementAt( row ) );
     }
     
     /** @return the complete list of paths in the list. */
     public java.util.List<Path> getAllPaths()
     {
-        final var STR_LIST = new ArrayList<String>( Arrays.asList( this.getItems() ) );
+        final var MODEL = (DefaultListModel<String>) super.getModel();
+        final var STR_LIST = Arrays.asList( MODEL.toArray() ).stream().map( (elem) -> elem.toString() ).toList();
         final var TORET = new ArrayList<Path>( STR_LIST.size() );
         
         for(String STR: STR_LIST) {
@@ -90,12 +108,18 @@ public class PathList extends java.awt.List implements PathChoice {
         return TORET;
     }
     
-    /** Adds a listener for the case in which a file is selected.
-      * @param action what to do...
+    /** Adds a listener for the case in which a file is double-clicked.
+      * @param ACTION what to do...
       */
-    public void addActionListener(Runnable action)
+    public void addActionListener(final Runnable ACTION)
     {
-        this.addActionListener( (evt) -> action.run() );
+        super.addMouseListener( new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent me)
+            {
+                ACTION.run();
+            }
+        });
     }
     
     /** Returns a file entry with an absolute path, given a name.
@@ -112,8 +136,10 @@ public class PathList extends java.awt.List implements PathChoice {
       */
     public void add(Path path)
     {
+        final var MODEL = (DefaultListModel<String>) super.getModel();
+        
         this.setCwdIfNeeded( path );
-        super.add( path.getFileName().toString() );
+        MODEL.addElement( path.getFileName().toString() );
     }
     
     /** Inserts a new path in the list.
@@ -122,8 +148,10 @@ public class PathList extends java.awt.List implements PathChoice {
       */
     public void insert(int row, Path path)
     {
+        final var MODEL = (DefaultListModel<String>) super.getModel();
+        
         this.setCwdIfNeeded( path );
-        super.add( path.getFileName().toString(), row );
+        MODEL.add( row, path.getFileName().toString() );
     }
     
     @Override
@@ -139,17 +167,18 @@ public class PathList extends java.awt.List implements PathChoice {
     {
         super.remove( row );
         
-        if ( this.getItemCount() == 0 ) {
+        if ( this.getModel().getSize() == 0 ) {
             this.dir = null;
         }
     }
     
     /** Removes all the paths in the list. */
-    @Override
-    public void removeAll()
+    public void removeAllPaths()
     {
+        final var MODEL = (DefaultListModel<String>) super.getModel();
+        
         this.dir = null;
-        super.removeAll();
+        MODEL.removeAllElements();
     }
     
     /** @return the CWD (current working directory). */
@@ -158,5 +187,30 @@ public class PathList extends java.awt.List implements PathChoice {
         return this.dir;
     }
     
+    /** @return the last selected index, or 0 (first item), if there was no selection. */
+    public int getLastSelectedIndex()
+    {
+        return this.lastSelectedIndex;
+    }
+    
+    /** Returns the selected path in the list.
+      * Sets the last selected index.
+      * @return the selected path, or null if there's no selection.
+      */
+    public Path getSelectedPath()
+    {
+        Path toret = null;
+        int selectedIndex = this.getSelectedIndex();
+        
+        if ( selectedIndex >= 0 ) {
+            this.lastSelectedIndex = selectedIndex;
+            toret = this.getPathAt( selectedIndex );
+        }
+        
+        return toret;
+    }
+
+    
     private Path dir;
+    private int lastSelectedIndex;
 }
