@@ -37,7 +37,7 @@ import javax.swing.JTextArea;
   * @author baltasarq
   */
 public class MainWindowView extends BrowserView {
-    private static final Dimension MIN_SIZE = new Dimension( 500, 400 );
+    private static final Dimension MIN_SIZE = new Dimension( 600, 450 );
     private static final Dimension START_SIZE = new Dimension( 620, 460 );
     private static final String ETQ_ICON_APP = "icon.png";
     private static final String ETQ_ICON_DIR_UP = "dir_up.png";
@@ -71,7 +71,9 @@ public class MainWindowView extends BrowserView {
         final var LY_CMDBAR = new BorderLayout();
         final var PNL_TOOLBAR = new JPanel( LY_TOOLBAR );
         final var PNL_CMDBAR = new JPanel( LY_CMDBAR );
-        final var PNL_MAIN = new JPanel( new GridLayout( 1, 3 ) );
+        
+        this.pnlMain = new JSplitPane();
+        this.pnlEntries = new JSplitPane();
         
         this.mainVsOutputPanel = new JSplitPane();
         this.buttons = new JButton[ Buttons.values().length ];
@@ -86,16 +88,22 @@ public class MainWindowView extends BrowserView {
         LY_CMDBAR.setHgap( 5 );
         LY_CMDBAR.setVgap( 5 );
         
-        PNL_MAIN.add( this.buildFavDirectoryChoice() );
-        PNL_MAIN.add( this.buildDirChoice() );
-        PNL_MAIN.add( this.buildFileChoice() );
+        this.pnlMain.setOrientation( JSplitPane.HORIZONTAL_SPLIT );
+        this.pnlEntries.setOrientation( JSplitPane.HORIZONTAL_SPLIT );
+        
+        this.pnlMain.setLeftComponent( this.buildFavDirectoryChoice() );
+        this.pnlMain.setRightComponent( this.pnlEntries );
+        
+        this.pnlEntries.setLeftComponent( this.buildDirChoice() );
+        this.pnlEntries.setRightComponent( this.buildFileChoice() );
+        
         this.buttons[ Buttons.BtDirUp.ordinal() ] = this.pnlChoiceDir.getBtUp();
         this.buttons[ Buttons.BtCopyCWDPath.ordinal() ] =
                                 this.pnlChoiceDir.getBtCopyCWDPath();
         
         this.mainVsOutputPanel.setOrientation(JSplitPane.VERTICAL_SPLIT );
         this.mainVsOutputPanel.setBottomComponent( this.buildOutputViewer() );
-        this.mainVsOutputPanel.setTopComponent( PNL_MAIN );
+        this.mainVsOutputPanel.setTopComponent( this.pnlMain );
         this.buttons[ Buttons.BtNewFav.ordinal() ] = this.pnlChoiceFavDir.getBtNew();
         this.buttons[ Buttons.BtDelFav.ordinal() ] = this.pnlChoiceFavDir.getBtRemove();
                 
@@ -109,18 +117,6 @@ public class MainWindowView extends BrowserView {
         this.getWindow().add( this.buildStatusBar(), BorderLayout.PAGE_END );
         this.getWindow().setIconImage( this.iconApp );
         this.getWindow().pack();
-        this.chkButtons();
-    }
-    
-    private void chkButtons()
-    {
-        for(Buttons btId: Buttons.values()) {
-            if ( this.buttons[ btId.ordinal() ] == null ) {
-                throw new Error(
-                        String.format( "Button '%s' is null!!",
-                                        btId.toString() ) );
-            }
-        }
     }
     
     /** Retrieves icons from jar for future use */
@@ -248,7 +244,6 @@ public class MainWindowView extends BrowserView {
         this.opDelete = new JMenuItem( "Delete" );
         this.opView = new JMenuItem( "View" );
         this.opRefresh = new JMenuItem( "Refresh" );
-        this.opShowHidden = new JMenuItem( "Show hidden" );
         
         this.mEdit.add( this.opNew );
         this.mEdit.add( this.opView );
@@ -256,12 +251,13 @@ public class MainWindowView extends BrowserView {
         this.mEdit.add( this.opCopy );
         this.mEdit.add( this.opMove );
         this.mEdit.add( this.opDelete );
-        this.mEdit.add( this.opShowHidden );
         
         this.mView = new JMenu( "View" );
         this.opViewOutput = new JMenuItem( "View output" );
+        this.opShowHidden = new JMenuItem( "Show hidden" );
         this.mView.add( this.opRefresh );
         this.mView.add( this.opViewOutput );
+        this.mView.add( this.opShowHidden );
         
         this.mTools = new JMenu( "Tools" );
         this.opOpenShell = new JMenuItem( "Open in shell" );
@@ -461,6 +457,20 @@ public class MainWindowView extends BrowserView {
         return this.mainVsOutputPanel;
     }
     
+    /** @return the main split panel, between favs and entries. */
+    public JSplitPane getPnlMain()
+    {
+        return this.pnlMain;
+    }
+    
+    /** @return the split panel between dirs and files. */
+    public JSplitPane getPnlEntries()
+    {
+        return this.pnlEntries;
+    }
+    
+    private JSplitPane pnlMain;
+    private JSplitPane pnlEntries;
     private FileChoicePanel pnlChoiceFile;
     private DirChoicePanel pnlChoiceDir;
     private VisitedDirChoicePanel pnlChoiceFavDir;
