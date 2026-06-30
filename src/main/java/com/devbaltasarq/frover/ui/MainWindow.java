@@ -43,6 +43,8 @@ import com.devbaltasarq.frover.ui.dlg.InputDlg;
 import com.devbaltasarq.frover.ui.components.NamedPathList;
 import com.devbaltasarq.frover.ui.components.PathList;
 import com.devbaltasarq.frover.ui.mainwindow.MainWindowView;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
 import javax.swing.JSplitPane;
 
 
@@ -87,9 +89,9 @@ public class MainWindow extends Browser {
         this.actionViewOutput = new Action( "view_output", "View output" );
         this.actionOpenShell = new Action( "open_shell", "Open shell" );
         
-        this.termPath = TermPath.build( this.config );
         this.build( path );
         new UICfgBridge( VIEW, this.config ).applyCfgToUI();
+        TermPath.build( config );
     }
     
     private void build(Path path)
@@ -132,8 +134,11 @@ public class MainWindow extends Browser {
     
     private void buildListeners()
     {
+        final var DIR_CHOICE = this.getView().getDirChoicePanel();
+        final var FILE_CHOICE = this.getView().getFileChoicePanel();
+        final var VISITED_DIR = this.getView().getVisitedDirChoicePanel();
         final JSplitPane SPLIT_PANEL = this.getView().getSplitPanel();
-        final JButton BtExe =
+        final JButton BT_EXE =
                     this.getView().getButton( MainWindowView.Buttons.BtExe );
 
         SPLIT_PANEL.addPropertyChangeListener(
@@ -142,27 +147,42 @@ public class MainWindow extends Browser {
         
         this.buildActions();
         
-        this.getView().
-                getDirChoicePanel().setCopyCWDAction(
-                                        (t) -> this.doCopyCWD( t ) );
-        this.getView().
-                getFileChoicePanel().setSelectFileAction(
-                                        (p) -> this.setStatus(
-                                                p.getFileName().toString() ) );
-        this.getView().
-                getFileChoicePanel().setOpenFileAction(
-                                        (p) -> this.doView( Entry.from( p ) ) );
-        this.getView().
-                getVisitedDirChoicePanel().setChangeDirAction(
-                                        (p) -> this.doCd( p ));
-        this.getView().
-                getVisitedDirChoicePanel().setNewFavAction(
-                                        () -> this.doNewFavDir() );
-        this.getView().
-                getVisitedDirChoicePanel().setRemoveFavAction(
-                                        () -> this.doRemoveFavDir() );
+        DIR_CHOICE.setCopyCWDAction( (t) -> this.doCopyCWD( t ) );
+        DIR_CHOICE.setChangeDirAction( (p) -> this.doCd( p ) );
+        DIR_CHOICE.setOpenShellAction( () -> this.doOpenInShell() );
+        DIR_CHOICE.setDeleteAction( (p) -> this.doDelete( p ) );
+        DIR_CHOICE.setRefreshAction( () -> {
+                        this.getView().getDirChoicePanel().requestFocus();
+                        this.doRefresh(); });
+        DIR_CHOICE.setNewDirAction( () -> {
+                        this.getView().getDirChoicePanel().requestFocus();
+                        this.doNew(); });
         
-        BtExe.addActionListener( (evt) -> this.doCmd() );
+        FILE_CHOICE.setSelectFileAction( (p) -> this.setStatus( p.getFileName().toString() ) );
+        FILE_CHOICE.setOpenFileAction( (p) -> this.doView( Entry.from( p ) ) );
+        //FILE_CHOICE.setOpenWithFileAction( (p) -> this.doViewWith( Entry.from( p ) ) );
+        FILE_CHOICE.setDeleteFileAction( (p) -> this.doDelete( p ) );
+        FILE_CHOICE.setCopyFileAction( (p) -> {
+                        this.getView().getFileChoicePanel().requestFocus();
+                        this.doCopy(); });
+        FILE_CHOICE.setMoveFileAction( (p) -> {
+                        this.getView().getFileChoicePanel().requestFocus();
+                        this.doMove(); });
+        FILE_CHOICE.setRenameFileAction( (p) -> {
+                        this.getView().getFileChoicePanel().requestFocus();
+                        this.doRename(); });
+        
+        VISITED_DIR.setNewFavAction( () -> this.doNewFavDir() );
+        VISITED_DIR.setRemoveFavAction( () -> this.doRemoveFavDir() );
+        VISITED_DIR.setChangeDirAction( (p) -> {
+            if ( !VISITED_DIR.getFavList().isSelfModifying()
+              && !VISITED_DIR.getHistList().isSelfModifying() )
+            {
+                this.cd( p );
+            }
+        });
+        
+        BT_EXE.addActionListener( (evt) -> this.doCmd() );
         
         this.getView().getEdCmd().addFocusListener( new FocusListener() {
             @Override
@@ -210,6 +230,26 @@ public class MainWindow extends Browser {
                 MainWindow.this.doQuit();
             }});
         
+        this.getView().getFrame().addComponentListener( new ComponentListener() {
+            @Override
+            public void componentResized(ComponentEvent ce)
+            {
+                MainWindow.this.doResize();
+            }
+
+            @Override
+            public void componentMoved(ComponentEvent ce)   {}
+
+            @Override
+            public void componentShown(ComponentEvent ce)
+            {
+                MainWindow.this.doResize();
+            }
+
+            @Override
+            public void componentHidden(ComponentEvent ce)  {}
+        });
+                
         final var KEY_MAN = KeyboardFocusManager.getCurrentKeyboardFocusManager();
         KEY_MAN.addKeyEventDispatcher( new KeyboardDispatcher() );
 
@@ -632,11 +672,26 @@ public class MainWindow extends Browser {
         return toret;
     }
     
-    /** Move action */
+    /** Delete action */
     public void doDelete()
     {
+        this.doDelete( this.getChosenEntry() );
+    }
+    
+    /** Delete action
+      * @param PATH the path to delete.
+      */
+    public void doDelete(final Path PATH)
+    {
+        this.doDelete( Entry.from( PATH ) );
+    }
+    
+    /** Delete action
+      * @param ENTRY the entry to delete.
+      */
+    public void doDelete(final Entry ENTRY)
+    {
         final String LBL_DELETE = this.actionDelete.getLabel();
-        final Entry ENTRY = this.getChosenEntry();
         String status;
         
         if ( ENTRY != null ) {
@@ -752,6 +807,15 @@ public class MainWindow extends Browser {
         return toret;
     }
     
+    /** On resize... */
+    public void doResize()
+    {
+        final var VIEW = this.getView();
+
+        VIEW.getPnlMain().setDividerLocation( 0.3 );
+        VIEW.getPnlEntries().setDividerLocation( 0.5 );
+    }
+    
     /** The about action. */
     public void doAbout()
     {
@@ -777,13 +841,13 @@ public class MainWindow extends Browser {
         
         this.showOutput( val );
     }
-    
+        
     public void doMainDividerMovement()
     {
         if ( !isBuild ) {
             int height = this.getView().getWindow().getHeight();
             int dividerLocation = this.getView().getSplitPanel().getDividerLocation();
-    System.out.println( "---Divided moved" );
+
             if ( height > 0 ) {
                 double pos = dividerLocation / height;
 
@@ -793,7 +857,6 @@ public class MainWindow extends Browser {
                     this.showOutput( true );
                 }
             }
-    System.out.println( "---End of Divided moved" );
         }
     }
     
@@ -976,7 +1039,6 @@ public class MainWindow extends Browser {
     private final Action actionViewOutput;
     private final Action actionOpenShell;
 
-    private final TermPath termPath;
     private final LogWriter logViewer;
     private final Config config;
     private final OpenerEngine openerEngine;

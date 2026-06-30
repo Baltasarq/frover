@@ -18,7 +18,7 @@ import javax.swing.DefaultListModel;
 /** A panel showing a list of files.
   * @author baltasarq
   */
-public class PathList extends javax.swing.JList implements PathChoice {
+public class PathList extends ListView implements PathChoice {
     public static final Color FG = Color.WHITE;
     public static final Color BG = Color.GRAY;
     public static final Font FONT_MONO_16 = Font.decode( "monospaced-16" );
@@ -80,9 +80,20 @@ public class PathList extends javax.swing.JList implements PathChoice {
       */
     public void modifyPathAt(int pos, Path path)
     {
+        this.modifyPathAt( pos, path.toString() );
+    }
+    
+    /** Modify the path at a given position.
+      * @param pos the position.
+      * @param path the verbatim new path.
+      */
+    public void modifyPathAt(int pos, String path)
+    {
         final var MODEL = (DefaultListModel<String>) super.getModel();
         
-        MODEL.setElementAt( path.toString(), pos );
+        this.setSelfModifying( true );
+        MODEL.setElementAt( path, pos );
+        this.setSelfModifying( false );
     }
     
     /** @return the path at a given pos in the list.
@@ -117,7 +128,9 @@ public class PathList extends javax.swing.JList implements PathChoice {
             @Override
             public void mouseClicked(MouseEvent me)
             {
-                ACTION.run();
+                if ( me.getClickCount() >= 2 ) {
+                    ACTION.run();
+                }
             }
         });
     }
@@ -135,11 +148,21 @@ public class PathList extends javax.swing.JList implements PathChoice {
       * @param path the path to add to the end of the list.
       */
     public void add(Path path)
+    {        
+        this.setCwdIfNeeded( path );
+        this.add( path.getFileName().toString() );
+    }
+    
+    /** Add verbatim element.
+      * @param element the verbatim element to add.
+      */
+    public void add(String element)
     {
         final var MODEL = (DefaultListModel<String>) super.getModel();
-        
-        this.setCwdIfNeeded( path );
-        MODEL.addElement( path.getFileName().toString() );
+
+        this.setSelfModifying( true );
+        MODEL.addElement( element );
+        this.setSelfModifying( false );
     }
     
     /** Inserts a new path in the list.
@@ -148,16 +171,21 @@ public class PathList extends javax.swing.JList implements PathChoice {
       */
     public void insert(int row, Path path)
     {
-        final var MODEL = (DefaultListModel<String>) super.getModel();
-        
         this.setCwdIfNeeded( path );
-        MODEL.add( row, path.getFileName().toString() );
+        this.insert( row, path.getFileName().toString() );
     }
     
-    @Override
-    public void remove(int row)
+    /** Inserts a new element in the list.
+      * @param row the number of the row to insert the path into.
+      * @param element the verbatim element to insert.
+      */
+    public void insert(int row, String element)
     {
-        this.removePathAt( row );
+        final var MODEL = (DefaultListModel<String>) super.getModel();
+        
+        this.setSelfModifying( true );
+        MODEL.add( row, element );
+        this.setSelfModifying( false );
     }
     
     /** Remove a path at a given row.
@@ -165,11 +193,16 @@ public class PathList extends javax.swing.JList implements PathChoice {
       */
     public void removePathAt(int row)
     {
-        super.remove( row );
+        final var MODEL = (DefaultListModel<String>) super.getModel();
+        
+        this.setSelfModifying( true );
+        MODEL.remove( row );
         
         if ( this.getModel().getSize() == 0 ) {
             this.dir = null;
         }
+        
+        this.setSelfModifying( false );
     }
     
     /** Removes all the paths in the list. */
@@ -178,7 +211,9 @@ public class PathList extends javax.swing.JList implements PathChoice {
         final var MODEL = (DefaultListModel<String>) super.getModel();
         
         this.dir = null;
+        this.setSelfModifying( true );
         MODEL.removeAllElements();
+        this.setSelfModifying( false );
     }
     
     /** @return the CWD (current working directory). */

@@ -13,4 +13,5 @@ import java.nio.file.Path;
 public interface PathChoice {
     int getSelectedIndex();
     Path getPathAt(int row);
+    boolean isSelfModifying();
 }

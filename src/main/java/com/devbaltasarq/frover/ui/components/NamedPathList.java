@@ -17,7 +17,7 @@ import javax.swing.DefaultListModel;
 /** A path list in which each directory is identified by a name.
   * @author baltasarq
   */
-public class NamedPathList extends javax.swing.JList implements PathChoice {
+public class NamedPathList extends ListView implements PathChoice {
     public static final Color FG = Color.WHITE;
     public static final Color BG = Color.GRAY;
     public static final Font FONT_MONO_16 = Font.decode( "monospaced-16" );
@@ -41,6 +41,17 @@ public class NamedPathList extends javax.swing.JList implements PathChoice {
         super.setModel( new DefaultListModel<String>() );
     }
     
+    /** Adds a new name/path pair.
+      * @param NAME_PATH the NamedPath object holding a name and its path.
+      */
+    public void add(final NamedPath NAME_PATH)
+    {
+        this.setSelfModifying( true );
+        this.namesToPaths.put( NAME_PATH.getName(), NAME_PATH.getPath() );
+        this.setSelfModifying( false );
+        this.updateList();
+    }
+    
     public void add(String path)
     {
         final Path PATH = Path.of( path );
@@ -55,12 +66,6 @@ public class NamedPathList extends javax.swing.JList implements PathChoice {
         final String NAME = PATH.getFileName().toString();
         
         this.add( new NamedPath( NAME, PATH ) );
-    }
-    
-    @Override
-    public void remove(int row)
-    {
-        this.removePathAt( row );
     }
     
     /** @return the number of items in the list. */
@@ -89,30 +94,28 @@ public class NamedPathList extends javax.swing.JList implements PathChoice {
         final List<String> SORTED_NAMES = this.sortNames();
         final var MODEL = (DefaultListModel<String>) super.getModel();
         
+        this.setSelfModifying( true );
         MODEL.removeAllElements();
+
         for(final String NAME: SORTED_NAMES) {
             MODEL.addElement( NAME );
-        }        
+        }
+        
+        this.setSelfModifying( false );
     }
-    
-    /** Adds a new name/path pair.
-      * @param NAME_PATH the NamedPath object holding a name and its path.
-      */
-    public void add(final NamedPath NAME_PATH)
-    {
-        this.namesToPaths.put( NAME_PATH.getName(), NAME_PATH.getPath() );
-        this.updateList();
-    }
-    
+        
     /** Remove a path at a given row.
       * @param row the number of the row for the file to remove.
       */
     public void removePathAt(int row)
     {
+        final var MODEL = (DefaultListModel<String>) super.getModel();
         final String NAME = (String) super.getModel().getElementAt( row );
         
-        super.remove( row );
+        this.setSelfModifying( true );
+        MODEL.remove( row );
         this.namesToPaths.remove( NAME );
+        this.setSelfModifying( false );
     }
     
     /** Return the path at the given row.
@@ -139,8 +142,10 @@ public class NamedPathList extends javax.swing.JList implements PathChoice {
     {
         final var MODEL = (DefaultListModel<String>) super.getModel();
         
+        this.setSelfModifying( true );
         MODEL.removeAllElements();
         this.namesToPaths.clear();
+        this.setSelfModifying( false );
     }
     
     public List<NamedPath> getAll()

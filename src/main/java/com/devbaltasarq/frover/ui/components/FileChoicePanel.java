@@ -11,7 +11,12 @@ import java.util.function.Consumer;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.SwingUtilities;
 
 
 /** Represents a panel with capabilities for file selecting.
@@ -30,11 +35,16 @@ public class FileChoicePanel extends JPanel {
     public FileChoicePanel(Color fg, Color bg, Font font)
     {
         this.fileList = new PathList( fg, bg, font );
-        this.fileOpener = (p) -> {};
+        this.newFileAction = () -> {};
+        this.openFileAction = (p) -> {};
+        this.openWithFileAction = (p) -> {};
+        this.renameFileAction = (p) -> {};
+        this.deleteFileAction = (p) -> {};
+        this.copyFileAction = (p) -> {};
+        this.moveFileAction = (p) -> {};
         
         this.build();
         this.buildListeners();
-        this.lastSelectedIndex = 0;
     }
     
     private void build()
@@ -46,21 +56,85 @@ public class FileChoicePanel extends JPanel {
        
        this.setLayout( LYB_1 );
        this.add( this.fileList, BorderLayout.CENTER );
+       this.buildPopup();
     }
     
+    private void buildPopup()
+    {
+        this.ppPopup = new JPopupMenu( "File" );
+        this.ppPopup.setVisible( false );
+        
+        this.ppmNewFile = new JMenuItem( "New..." );
+        this.ppmNewFile.addActionListener(
+                            (evt) -> this.newFileAction.run() );
+        
+        this.ppmOpen = new JMenuItem( "Open" );
+        this.ppmOpen.addActionListener(
+                            (evt) -> this.openFileAction.accept(
+                                            this.fileList.getSelectedPath() ) );
+        
+        this.ppmOpenWith = new JMenuItem( "Open with..." );
+        this.ppmOpenWith.addActionListener(
+                            (evt) -> this.openWithFileAction.accept(
+                                            this.fileList.getSelectedPath() ) );
+        
+        this.ppmRename = new JMenuItem( "Rename" );
+        this.ppmRename.addActionListener(
+                            (evt) -> this.renameFileAction.accept(
+                                            this.fileList.getSelectedPath() ) );
+        
+        this.ppmCopy = new JMenuItem( "Copy" );
+        this.ppmCopy.addActionListener(
+                            (evt) -> this.copyFileAction.accept(
+                                            this.fileList.getSelectedPath() ) );
+        
+        this.ppmMove = new JMenuItem( "Move" );
+        this.ppmMove.addActionListener(
+                            (evt) -> this.moveFileAction.accept(
+                                            this.fileList.getSelectedPath() ) );
+        
+        this.ppmDelete = new JMenuItem( "Delete" );
+        this.ppmDelete.addActionListener(
+                            (evt) -> this.deleteFileAction.accept(
+                                            this.fileList.getSelectedPath() ) );
+        
+        this.ppPopup.add( this.ppmNewFile );
+        this.ppPopup.add( this.ppmOpen );
+        this.ppPopup.add( this.ppmOpenWith );
+        this.ppPopup.add( this.ppmRename );
+        this.ppPopup.add( this.ppmCopy );
+        this.ppPopup.add( this.ppmMove );
+        this.ppPopup.add( this.ppmDelete );
+    }
+        
     private void buildListeners()
     {
-        this.fileList.addActionListener( (evt) -> doOpenFile() );
-        this.fileList.addItemListener( (evt) -> doSelectFile() );
+        this.fileList.addActionListener( () -> doOpenFile() );
+        this.fileList.addListSelectionListener( (evt) -> doSelectFile() );
+        
+        this.fileList.addMouseListener( new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent me)
+            {            
+                final var SELF = FileChoicePanel.this;
+                
+                if ( SwingUtilities.isRightMouseButton( me )
+                  && !SELF.fileList.isSelfModifying() )
+                {
+                    SELF.showPopup( me.getX(), me.getY() );
+                }
+            }
+        });
     }
     
     private void doSelectFile()
     {
-        int pos = this.fileList.getSelectedIndex();
+        final Path SELECTED_PATH = this.fileList.getSelectedPath();
         
-        if ( pos >= 0 ) {
-            this.fileSelector.accept( this.fileList.getPathAt( pos ) );
-            this.lastSelectedIndex = pos;
+        if ( SELECTED_PATH != null
+          && !this.fileList.isSelfModifying() )
+        {
+            this.fileSelectAction.accept( SELECTED_PATH );
         }
     }
     
@@ -69,7 +143,7 @@ public class FileChoicePanel extends JPanel {
         int pos = this.fileList.getSelectedIndex();
         
         if ( pos >= 0 ) {
-            this.fileOpener.accept( this.fileList.getPathAt( pos ) );
+            this.openFileAction.accept( this.fileList.getPathAt( pos ) );
         }
     }
     
@@ -79,19 +153,26 @@ public class FileChoicePanel extends JPanel {
       */
     public void syncToFiles(final Path DIR, final List<Path> FILES)
     {
-        final PathList FILE_LIST = this.getFileList();
+        if ( this.fileList.isSelfModifying() ) {
+            return;
+        }
         
-        FILE_LIST.removeAll();
+        final PathList FILE_LIST = this.getFileList();
+        final int SELECTED_INDEX = this.fileList.getSelectedIndex();
+
+        // Fill the path list wuth all files
+        FILE_LIST.removeAllPaths();
         FILE_LIST.setCWD( DIR );
         for(Path path: FILES) {
             FILE_LIST.add( path );
         }
         
-        if ( this.lastSelectedIndex >= 0
-          && this.lastSelectedIndex < FILE_LIST.count() )
+        // Re-select the last index
+        if ( SELECTED_INDEX >= 0
+          && SELECTED_INDEX < FILE_LIST.count() )
         {
-            FILE_LIST.select( this.lastSelectedIndex );
-            FILE_LIST.makeVisible( this.lastSelectedIndex );
+            FILE_LIST.setSelectedIndex( SELECTED_INDEX );
+            FILE_LIST.ensureIndexIsVisible( SELECTED_INDEX );
         }
     }
     
@@ -100,33 +181,69 @@ public class FileChoicePanel extends JPanel {
     {
         return this.fileList;
     }
-    
-    /** Changes the listener for the file selection.
-      * @param doIt the new function to invoke when a file is selected.
-      */
-    public void setOpenFileAction(Consumer<Path> doIt)
-    {
-        this.fileOpener = doIt;
-    }
-    
-    /** @return the action invoked when a file is selected. */
-    public Consumer<Path> getOpenFileAction()
-    {
-        return this.fileOpener;
-    }
-    
+       
     /** Changes the listener for the file selection.
       * @param doIt the new function to invoke when a file is selected.
       */
     public void setSelectFileAction(Consumer<Path> doIt)
     {
-        this.fileSelector = doIt;
+        this.fileSelectAction = doIt;
     }
     
-    /** @return the action invoked when a file is selected. */
-    public Consumer<Path> getSelectFileAction()
+    /** Changes the listener for the file opener.
+      * @param doIt the new function to invoke when a file is open.
+      */
+    public void setOpenFileAction(Consumer<Path> doIt)
     {
-        return this.fileSelector;
+        this.openFileAction = doIt;
+    }
+    
+    /** Changes the listener for new file creation.
+      * @param doIt the new function to invoke when a file is created.
+      */
+    public void setNewFileAction(Runnable doIt)
+    {
+        this.newFileAction = doIt;
+    }    
+    
+    /** Changes the listener for the file opener with another program.
+      * @param doIt the new function to invoke when a file is open.
+      */
+    public void setOpenWithFileAction(Consumer<Path> doIt)
+    {
+        this.openWithFileAction = doIt;
+    }    
+
+    /** Changes the listener for file deletion.
+      * @param doIt the new function to invoke when a file is to be deleted.
+      */
+    public void setDeleteFileAction(Consumer<Path> doIt)
+    {
+        this.deleteFileAction = doIt;
+    }
+    
+    /** Changes the listener for file renaming.
+      * @param doIt the new function to invoke when a file is to be renamed.
+      */
+    public void setRenameFileAction(Consumer<Path> doIt)
+    {
+        this.renameFileAction = doIt;
+    }    
+    
+    /** Changes the listener for file copying.
+      * @param doIt the new function to invoke when a file is to be copied.
+      */
+    public void setCopyFileAction(Consumer<Path> doIt)
+    {
+        this.copyFileAction = doIt;
+    }
+    
+    /** Changes the listener for file moving.
+      * @param doIt the new function to invoke when a file is to be moved.
+      */
+    public void setMoveFileAction(Consumer<Path> doIt)
+    {
+        this.moveFileAction = doIt;
     }
     
     /** Sets the selected entry in the list, by the given index.
@@ -134,11 +251,52 @@ public class FileChoicePanel extends JPanel {
       */
     public void setSelectedIndex(int index)
     {
-        this.fileList.select( index );
+        if ( !this.fileList.isSelfModifying() ) {
+            this.fileList.setSelectedIndex( index );
+        }
     }
     
-    private int lastSelectedIndex;
-    private Consumer<Path> fileOpener;
-    private Consumer<Path> fileSelector;
+    /** @return the popup for the file browser. */
+    public JPopupMenu getPopup()
+    {
+        return this.ppPopup;
+    }
+    
+    /** Shows the popup for the file choice panel.
+      * @param x the x clicked position for the popup.
+      * @param y the y clicked position for the popup.
+      */
+    public void showPopup(int x, int y)
+    {
+        boolean fileSelected = this.fileList.getSelectedIndex() >= 0;
+        
+        this.ppmNewFile.setEnabled( true );
+        this.ppmOpen.setEnabled( fileSelected );
+        this.ppmOpenWith.setEnabled( fileSelected );
+        this.ppmRename.setEnabled( fileSelected );
+        this.ppmCopy.setEnabled( fileSelected );
+        this.ppmMove.setEnabled( fileSelected );
+        this.ppmDelete.setEnabled( fileSelected );
+        
+        this.ppPopup.show( this.fileList, x, y );
+    }
+
+    
     private final PathList fileList;
+    private Runnable newFileAction;
+    private Consumer<Path> fileSelectAction;
+    private Consumer<Path> openFileAction;
+    private Consumer<Path> openWithFileAction;
+    private Consumer<Path> renameFileAction;
+    private Consumer<Path> copyFileAction;
+    private Consumer<Path> moveFileAction;
+    private Consumer<Path> deleteFileAction;
+    private JPopupMenu ppPopup;
+    private JMenuItem ppmNewFile;
+    private JMenuItem ppmOpen;
+    private JMenuItem ppmRename;
+    private JMenuItem ppmCopy;
+    private JMenuItem ppmMove;
+    private JMenuItem ppmDelete;
+    private JMenuItem ppmOpenWith;
 }

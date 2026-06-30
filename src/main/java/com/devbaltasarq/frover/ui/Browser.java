@@ -93,25 +93,13 @@ public abstract class Browser {
         final PathList DIR_CHOICE = this.view.getDirChoicePanel().getDirList();
         final PathList FILE_CHOICE = this.view.getFileChoicePanel().getFileList();
         PathList targetList = FILE_CHOICE;
-        Path path = null;
-        Entry toret = null;
         
         // Determine the list
         if ( DIR_CHOICE.isFocusOwner() ) {
             targetList = DIR_CHOICE;
         }
         
-        // Determine the path
-        int pos = targetList.getSelectedIndex();
-        
-        if ( pos >= 0
-          && pos < targetList.count() )
-        {
-            path = targetList.getPathAt( pos );
-            toret = Entry.from( path.toFile() );
-        }
-        
-        return toret;
+        return Entry.from( targetList.getSelectedPath() );
     }
     
     /** Changes directory to the given path.

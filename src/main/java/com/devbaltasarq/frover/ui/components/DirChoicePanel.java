@@ -13,10 +13,15 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Consumer;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
+import javax.swing.SwingUtilities;
 
 
 /** This involves various selection widgets,
@@ -44,7 +49,10 @@ public class DirChoicePanel extends JPanel {
         
         this.dirChanger = (p) -> {};
         this.cwdCopier = (p) -> {};
-        this.lastSelectedIndex = 0;
+        this.newDirAction = () -> {};
+        this.openShellAction = () -> {};
+        this.refreshAction = () -> {};
+        this.deleteAction = (p) -> {};
         
         this.syncing = false;
         this.build();
@@ -90,13 +98,35 @@ public class DirChoicePanel extends JPanel {
         this.setLayout( LYB_1 );
         this.add( this.topDirs, BorderLayout.NORTH );
         this.add( PNL_FOR_CWD, BorderLayout.CENTER );
+        this.buildPopup();
+    }
+    
+    private void buildPopup()
+    {
+        this.ppDirPopup = new JPopupMenu( "Dir" );
+        this.ppDirPopup.setVisible( false );
+        
+        this.ppmNewDir = new JMenuItem( "New dir..." );
+        this.ppmNewDir.addActionListener( (evt) -> this.newDirAction.run() );
+        this.ppmRefresh = new JMenuItem( "Refresh" );
+        this.ppmRefresh.addActionListener( (evt) -> this.refreshAction.run() );
+        this.ppmOpenShell = new JMenuItem( "Open in shell" );
+        this.ppmOpenShell.addActionListener( (evt) -> this.openShellAction.run() );
+        this.ppmDelete = new JMenuItem( "Delete" );
+        this.ppmDelete.addActionListener(
+                            (evt) -> this.deleteAction.accept(
+                                            this.dirList.getSelectedPath() ) );
+        
+        this.ppDirPopup.add( this.ppmNewDir );
+        this.ppDirPopup.add( this.ppmRefresh );
+        this.ppDirPopup.add( this.ppmOpenShell );
     }
     
     private void buildListeners()
     {
         this.btCopyCWD.addActionListener( (evt) -> this.doCopyCWD() );
         this.dirList.addActionListener( () -> this.doDirSelected() );
-        this.dirList.addItemListener( (evt) -> this.updateDirMarked() );
+        this.dirList.addListSelectionListener( (evt) -> this.updateDirMarked() );
         this.btUp.addActionListener( (evt) -> this.doGoUpDirSelected());
         this.topDirs.addItemListener( (evt) -> this.doTopDirSelected() );        
         this.edCWD.addKeyListener( new KeyListener() {
@@ -124,6 +154,17 @@ public class DirChoicePanel extends JPanel {
                         }
                     });
 
+        
+        this.dirList.addMouseListener( new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent me)
+            {
+                if ( SwingUtilities.isRightMouseButton( me ) ) {
+                    DirChoicePanel.this.showPopup( me.getX(), me.getY() );
+                }
+            }
+        });
+
     }
     
     /** Invokes the cwd copier with the contents of the CWD text field. */
@@ -135,26 +176,20 @@ public class DirChoicePanel extends JPanel {
     /** Change directory from the dir list. */
     private void doDirSelected()
     {
-        if ( !this.syncing ) {
-            int dirPos = this.getDirList().getSelectedIndex();
-
-            if ( dirPos >= 0 ) {
-                final Path PATH = this.getDirList().getPathAt( dirPos );
-                this.dirChanger.accept( PATH );
-                this.lastSelectedIndex = dirPos;
-            }
+        if ( !this.syncing
+          && !this.dirList.isSelfModifying() )
+        {
+            this.dirChanger.accept( this.dirList.getSelectedPath() );
         }
     }
     
     /** Change the directory marked. */
     private void updateDirMarked()
     {
-        if ( !this.syncing ) {
-            int dirPos = this.getDirList().getSelectedIndex();
-
-            if ( dirPos >= 0 ) {
-                this.lastSelectedIndex = dirPos;
-            }
+        if ( !this.syncing
+          && !dirList.isSelfModifying() )
+        {
+            this.getDirList().getSelectedPath();
         }
     }
     
@@ -162,7 +197,7 @@ public class DirChoicePanel extends JPanel {
     private void doGoUpDirSelected()
     {
         if ( !this.syncing ) {
-            this.dirChanger.accept( this.dirList.getCWD().getParent() );
+            this.dirChanger.accept( this.getDirList().getCWD().getParent() );
         }
     }
     
@@ -248,6 +283,7 @@ public class DirChoicePanel extends JPanel {
     {
         final JComboBox CH_TOP_DIRS = this.getTopDirs();
         final PathList DIR_LIST = this.getDirList();
+        final int SELECTED_INDEX = DIR_LIST.getLastSelectedIndex();
         
         this.syncing = true;
         
@@ -270,21 +306,68 @@ public class DirChoicePanel extends JPanel {
         this.getEdCWD().setText( DIR.toString() );
                 
         // Copy entries to lists
-        DIR_LIST.removeAll();
+        DIR_LIST.removeAllPaths();
         DIR_LIST.setCWD( DIR );
         for(Path p: SUB_DIRECTORIES) {
             DIR_LIST.add( p );
         }
         
-        if ( this.lastSelectedIndex >= 0
-          && this.lastSelectedIndex < DIR_LIST.count() )
+        if ( SELECTED_INDEX >= 0
+          && SELECTED_INDEX < DIR_LIST.count() )
         {
-            DIR_LIST.select( this.lastSelectedIndex );
-            DIR_LIST.makeVisible( this.lastSelectedIndex );
+            DIR_LIST.setSelectedIndex( SELECTED_INDEX );
+            DIR_LIST.ensureIndexIsVisible( SELECTED_INDEX );
         }
         
         CH_TOP_DIRS.setEnabled( true );
         this.syncing = false;
+    }
+    
+    /** @return the popup for the dir browser. */
+    public JPopupMenu getPopup()
+    {
+        return this.ppDirPopup;
+    }
+    
+    /** Shows the popup for the dir choice panel.
+      * @param x the x clicked position for the popup.
+      * @param y the y clicked position for the popup.
+      */
+    public void showPopup(int x, int y)
+    {
+        this.ppDirPopup.show( this.getDirList(), x, y );
+    }
+    
+    /** Sets the new action for creating a directory.
+      * @param doIt the action to really do it.
+      */
+    public void setNewDirAction(Runnable doIt)
+    {
+        this.newDirAction = doIt;
+    }
+    
+    /** Sets the new action for refreshing.
+      * @param doIt the action to really do it.
+      */
+    public void setRefreshAction(Runnable doIt)
+    {
+        this.refreshAction = doIt;
+    }
+    
+    /** Sets the new action for opening a shell.
+      * @param doIt the action to really do it.
+      */
+    public void setOpenShellAction(Runnable doIt)
+    {
+        this.openShellAction = doIt;
+    }
+    
+    /** Sets the new action for deleting a directory.
+      * @param doIt the action to really do it.
+      */
+    public void setDeleteAction(Consumer<Path> doIt)
+    {
+        this.deleteAction = doIt;
     }
     
     private final PathList dirList;
@@ -293,7 +376,16 @@ public class DirChoicePanel extends JPanel {
     private final JButton btCopyCWD;
     private final JComboBox topDirs;
     
-    private int lastSelectedIndex;
+    private JPopupMenu ppDirPopup;
+    private JMenuItem ppmOpenShell;
+    private JMenuItem ppmNewDir;
+    private JMenuItem ppmRefresh;
+    private JMenuItem ppmDelete;
+    private Runnable newDirAction;
+    private Runnable openShellAction;
+    private Runnable refreshAction;
+    private Consumer<Path> deleteAction;
+    
     private boolean syncing;
     private Consumer<Path> dirChanger;
     private Consumer<String> cwdCopier;
