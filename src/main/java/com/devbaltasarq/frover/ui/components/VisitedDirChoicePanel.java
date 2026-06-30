@@ -10,12 +10,14 @@ import javax.swing.JPanel;
 import javax.swing.JButton;
 import java.awt.GridLayout;
 import java.awt.BorderLayout;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
 
 import java.nio.file.Path;
 import java.util.function.Consumer;
 
 
-/** This is a small wrapper around a DirList
+/** This is a small wrapper around a DirList.
   * @see DirList
   * @author baltasarq
   */
@@ -37,16 +39,10 @@ public class VisitedDirChoicePanel extends JPanel {
         this.histDirList = new ShortenedDirList( fg, bg, font );
         this.dirChanger = (p) -> {};
         this.btNewClicker = () -> {};
+        this.maxChars = 5;
         
         this.build();
-        this.favDirList.addItemListener(
-                            (evt) -> this.doDirSelected( this.favDirList ) );
-        this.histDirList.addItemListener(
-                            (evt) -> this.doDirSelected( this.histDirList ) );
-        this.btNew.addActionListener(
-                            (evt) -> this.doNewFavDir() );
-        this.btRemove.addActionListener(
-                            (evt) -> this.doRemoveFavDir() );
+        this.buildListeners();
     }
     
     private void build()
@@ -76,11 +72,74 @@ public class VisitedDirChoicePanel extends JPanel {
         this.add( PANEL_MAIN, BorderLayout.CENTER );
     }
     
+    private void buildListeners()
+    {
+        this.addComponentListener( new ComponentListener() {
+            @Override
+            public void componentResized(ComponentEvent ce)
+            {
+                VisitedDirChoicePanel.this.onResize();
+            }
+
+            @Override
+            public void componentMoved(ComponentEvent ce)
+            {
+            }
+
+            @Override
+            public void componentShown(ComponentEvent ce)
+            {
+                VisitedDirChoicePanel.this.onResize();
+            }
+
+            @Override
+            public void componentHidden(ComponentEvent ce)
+            {
+            }
+        });
+        
+        this.favDirList.addListSelectionListener(
+                            (evt) -> this.doDirSelected( this.favDirList ) );
+        this.histDirList.addListSelectionListener(
+                            (evt) -> this.doDirSelected( this.histDirList ) );
+        this.btNew.addActionListener(
+                            (evt) -> this.doNewFavDir() );
+        this.btRemove.addActionListener(
+                            (evt) -> this.doRemoveFavDir() );
+    }
+    
+    private void onResize()
+    {
+        final var METRICS = this.getFontMetrics( this.favDirList.getFont() );
+        int width = this.getWidth();
+        int chWidth = (int) ( METRICS.charWidth( 'W' ) * 1.25 );
+        
+        if ( chWidth == 0 ) {
+            chWidth = 8;
+        }
+        
+        this.maxChars = Math.floorDiv( width,  chWidth );        
+        this.histDirList.setMaxVisibleChars( this.maxChars );
+        this.histDirList.invalidate();
+    }
+    
+    /** @return the max. number of chars that fit in this width. */
+    public int getMaxChars()
+    {
+        return this.maxChars;
+    }
+    
     /** Add a new directory to the history panel. 
       * @param path the new Path to add.
       */
     public void addDirToHistory(Path path)
     {
+        if ( this.getHistList().count() > 0
+          && this.getHistList().getPathAt( 0 ).equals( path ) )
+        {
+            return;
+        }
+        
         this.getHistList().insert( 0, path );
     }
     
@@ -111,7 +170,9 @@ public class VisitedDirChoicePanel extends JPanel {
     {
         int dirPos = list.getSelectedIndex();
         
-        if ( dirPos >= 0 ) {
+        if ( dirPos >= 0
+          && !list.isSelfModifying() )
+        {
             this.dirChanger.accept( list.getPathAt( dirPos ) );
         }
     }
@@ -185,6 +246,7 @@ public class VisitedDirChoicePanel extends JPanel {
     private Consumer<Path> dirChanger;
     private Runnable btNewClicker;
     private Runnable btRemoveClicker;
+    private int maxChars;
     private final JButton btNew;
     private final JButton btRemove;
     private final NamedPathList favDirList;

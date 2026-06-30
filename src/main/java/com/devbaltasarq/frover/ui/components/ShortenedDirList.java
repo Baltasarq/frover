@@ -8,6 +8,7 @@ import java.awt.Font;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.DefaultListModel;
 
 
 /** A dir list in which the paths appear shortened.
@@ -32,6 +33,19 @@ public class ShortenedDirList extends PathList {
     public int getMaxVisibleChars()
     {
         return this.maxVisibleChars;
+    }
+    
+    /** Set the max number of chars to be shown for each path.
+      * @param maxChars the new value for max chars.
+      */
+    public void setMaxVisibleChars(int maxChars)
+    {
+        if ( maxChars <= 0 ) {
+            maxChars = 1;
+        }
+        
+        this.maxVisibleChars = maxChars;
+        this.updatePaths();
     }
     
     @Override
@@ -72,6 +86,16 @@ public class ShortenedDirList extends PathList {
         return toret;
     }
     
+    /** Updates the entries so the shortening adapts to width. */
+    private void updatePaths()
+    {
+        for(int i = 0; i < this.realPaths.size(); ++i) {
+            final Path PATH = this.realPaths.get( i );
+            
+            super.modifyPathAt( i, this.shortenPath( PATH ) );
+        }
+    }
+    
     /** Adds a new path.
       * @param path the path to add to the end of the list.
       */
@@ -84,19 +108,13 @@ public class ShortenedDirList extends PathList {
     
     /** Inserts a new path in the list.
       * @param row the number of the row to insert the path into.
-      * @param path the file to add to the end of the list.
+      * @param path the path to insert at a given position in the list.
       */
     @Override
     public void insert(int row, Path path)
     {
-        super.add( this.shortenPath( path ), row );
+        super.insert( row, this.shortenPath( path ) );
         this.realPaths.add( row, path );
-    }
-    
-    @Override
-    public void remove(int row)
-    {
-        this.removePathAt( row );
     }
     
     /** Remove a path at a given row.
@@ -105,21 +123,23 @@ public class ShortenedDirList extends PathList {
     @Override
     public void removePathAt(int row)
     {
-        super.remove( row );
+        super.removePathAt( row );
         
-        if ( this.getItemCount() == 0 ) {
+        if ( this.getModel().getSize() == 0 ) {
             this.realPaths.clear();
         }
     }
     
     /** Removes all the paths in the list. */
     @Override
-    public void removeAll()
+    public void removeAllPaths()
     {
-        super.removeAll();
+        final var MODEL = (DefaultListModel<String>) super.getModel();
+        
+        MODEL.removeAllElements();
         this.realPaths.clear();
     }
     
     private final List<Path> realPaths;
-    private final int maxVisibleChars;
+    private int maxVisibleChars;
 }
